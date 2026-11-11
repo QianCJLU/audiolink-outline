@@ -1,0 +1,8 @@
+{
+  "name":"AudioLinkOutline.Runtime",
+  "references":["VRC.SDKBase"],
+  "autoReferenced":true,
+  "overrideReferences":false,
+  "defineConstraints":["ALO_VRC"],
+  "versionDefines":[{"name":"com.vrchat.avatars","expression":"","define":"ALO_VRC"}]
+}

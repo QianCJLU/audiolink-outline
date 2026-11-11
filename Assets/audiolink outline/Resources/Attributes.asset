@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -340790334, guid: 67cc4cb7839cd3741b63733d5adf0442, type: 3}
+  m_Name: Attributes
+  m_EditorClassIdentifier: 
+  Parameters: {fileID: 0}
+  controls:
+  - name: "\u6CE2\u5CF0\u5BBD\u5EA6"
+    icon: {fileID: 2800000, guid: 34e9621eb776b68419ba72ac443048e4, type: 3}
+    type: 203
+    parameter:
+      name: 
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters:
+    - name: ALO/WaveWidth
+    labels: []
+  - name: "\u672A\u54CD\u5E94\u8F6E\u5ED3\u5BBD\u5EA6"
+    icon: {fileID: 2800000, guid: 675522e01b489c1489be47c6a741698c, type: 3}
+    type: 203
+    parameter:
+      name: 
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters:
+    - name: ALO/OutlineWidth
+    labels: []
+  - name: "\u4EAE\u5EA6"
+    icon: {fileID: 2800000, guid: 084f3bd9bd54f3f4994703a9d1e646c8, type: 3}
+    type: 203
+    parameter:
+      name: 
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters:
+    - name: ALO/OutlineBrightness
+    labels: []
+  - name: "\u63CF\u8FB9\u8272\u76F8"
+    icon: {fileID: 2800000, guid: 61b3b0e5434f6874b9a73c8c5358dc27, type: 3}
+    type: 203
+    parameter:
+      name: 
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters:
+    - name: ALO/OutlineHue
+    labels: []
+  - name: "\u547C\u5438\u6CE2\u52A8"
+    icon: {fileID: 2800000, guid: 0393752604557ec45905c828e58d2118, type: 3}
+    type: 102
+    parameter:
+      name: ALO/OutlineBreath
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []
+  - name: "\u97F3\u9891\u6CE2\u52A8"
+    icon: {fileID: 2800000, guid: 62e868469b85d4e4593888def560f76f, type: 3}
+    type: 102
+    parameter:
+      name: ALO/OutlineBreath
+    value: 0
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []
+  - name: "\u547C\u5438\u6CE2\u957F"
+    icon: {fileID: 2800000, guid: 9ec4dd634b4ef6f4cb161ecadac083da, type: 3}
+    type: 203
+    parameter:
+      name: 
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters:
+    - name: ALO/BreathLength
+    labels: []
+  - name: "\u547C\u5438\u9891\u7387"
+    icon: {fileID: 2800000, guid: 5ec9b34b2b79b6c4ca5738823d601398, type: 3}
+    type: 203
+    parameter:
+      name: 
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters:
+    - name: ALO/BreathFrequency
+    labels: []
