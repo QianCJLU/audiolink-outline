@@ -15,7 +15,7 @@ namespace AudioLinkOutline.Editor
     {
         public const string Folder="Assets/audiolink outline";
         public const string PrefabPath=Folder+"/audiolink outline.prefab";
-        public const string Version="0.2.3";
+        public const string Version="0.2.4";
 
         public static AudioLinkOutlineSettings Install(VRCAvatarDescriptor avatar,VRCExpressionsMenu target)
         {
@@ -201,7 +201,8 @@ namespace AudioLinkOutline.Editor
   }
   void ResetRange(string property,bool signed=false){serializedObject.FindProperty(property).vector2Value=new Vector2(signed?-1:0,1);}
   void DrawTargets(VRCAvatarDescriptor avatar){
-   var list=serializedObject.FindProperty("renderers");EditorGUILayout.PropertyField(list,new GUIContent("手动拖入目标"),true);
+   var list=serializedObject.FindProperty("renderers");
+   using(new EditorGUI.IndentLevelScope())EditorGUILayout.PropertyField(list,new GUIContent("手动拖入目标"),true);
    search=EditorGUILayout.TextField("搜索网格",search);var selected=new System.Collections.Generic.HashSet<SkinnedMeshRenderer>();for(int i=0;i<list.arraySize;i++)if(list.GetArrayElementAtIndex(i).objectReferenceValue is SkinnedMeshRenderer r)selected.Add(r);
    EditorGUILayout.LabelField("已选 "+selected.Count+" 个网格",EditorStyles.miniLabel);
    var candidates=avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMesh&&r.name!="__ALOOutline"&&r.name!="__ALOMask").ToArray();

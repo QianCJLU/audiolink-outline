@@ -6,8 +6,8 @@
 
 | 版本 | 游戏内控制 | 同步参数 |
 |---|---|---|
-| [完整版 0.2.3](https://github.com/QianCJLU/audiolink-outline/releases/tag/v0.2.3) | 属性轮盘、四向偏移、开关与模式 | 66 bits |
-| [轻量版 0.1.3](https://github.com/QianCJLU/audiolink-outline/releases/tag/v0.1.3) | 总开关、固定呼吸、自动音频响应 | 2 bits |
+| [完整版 0.2.4](https://github.com/QianCJLU/audiolink-outline/releases/tag/v0.2.4) | 属性轮盘、四向偏移、开关与模式 | 66 bits |
+| [轻量版 0.1.4](https://github.com/QianCJLU/audiolink-outline/releases/tag/v0.1.4) | 总开关、固定呼吸、自动音频响应 | 2 bits |
 
 轻量版的亮度、色相、轮廓宽度、波峰幅度、呼吸波长、呼吸频率和偏移在 Unity 检查器中设置，构建时写入材质。检查器按安装与目标、颜色与亮度、轮廓宽度、呼吸波形、剪影偏移分组，各组可独立展开；网格列表支持搜索和限高滚动。
 

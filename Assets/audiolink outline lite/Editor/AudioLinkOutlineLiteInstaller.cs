@@ -8,7 +8,7 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using nadena.dev.modular_avatar.core;
 namespace AudioLinkOutlineLite.Editor {
  public static class AudioLinkOutlineLiteInstaller {
-  public const string Version="0.1.3",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
+  public const string Version="0.1.4",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
   public static void Repair(AudioLinkOutlineLiteSettings settings){
    var menu=settings.GetComponent<ModularAvatarMenuInstaller>()??Undo.AddComponent<ModularAvatarMenuInstaller>(settings.gameObject);
    var parameters=settings.GetComponent<ModularAvatarParameters>()??Undo.AddComponent<ModularAvatarParameters>(settings.gameObject);
@@ -101,7 +101,8 @@ namespace AudioLinkOutlineLite.Editor {
   void Field(string name,string label,string tip=""){EditorGUILayout.PropertyField(serializedObject.FindProperty(name),new GUIContent(label,tip));}
   void Set(string name,float value){serializedObject.FindProperty(name).floatValue=value;}
   void DrawTargets(VRCAvatarDescriptor avatar){
-   var list=serializedObject.FindProperty("renderers");EditorGUILayout.PropertyField(list,new GUIContent("手动拖入目标"),true);
+   var list=serializedObject.FindProperty("renderers");
+   using(new EditorGUI.IndentLevelScope())EditorGUILayout.PropertyField(list,new GUIContent("手动拖入目标"),true);
    search=EditorGUILayout.TextField("搜索网格",search);var selected=new System.Collections.Generic.HashSet<SkinnedMeshRenderer>();for(int i=0;i<list.arraySize;i++)if(list.GetArrayElementAtIndex(i).objectReferenceValue is SkinnedMeshRenderer r)selected.Add(r);
    EditorGUILayout.LabelField("已选 "+selected.Count+" 个网格",EditorStyles.miniLabel);
    var candidates=avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMesh&&r.name!="__ALOLiteOutline"&&r.name!="__ALOLiteMask").ToArray();
