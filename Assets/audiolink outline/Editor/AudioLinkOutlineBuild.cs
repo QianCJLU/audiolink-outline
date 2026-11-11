@@ -86,7 +86,7 @@ public static class AudioLinkOutlineBuild
         stencil=AudioLinkOutlineStencil.Select(s.stencilBit,stencilMaterials,clips);
         if(stencil!=s.stencilBit)Debug.Log("audiolink outline: preferred stencil bit "+s.stencilBit+" is occupied; automatically using "+stencil+" without changing original face/hair stencil values.");
         var targets=avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMesh&&Selected(r,root,s)&&AudioLinkOutlineMesh.Indices(r).Length>0).ToArray();
-        if(targets.Length==0)throw new Exception("所选部件没有支持的蒙皮网格。材质需提供 _MainTex 或 _BaseMap 主纹理属性。");
+        if(targets.Length==0)throw new Exception("所选部件没有可生成轮廓的三角面蒙皮网格。");
         // Write only a reserved stencil bit in the existing opaque character draw.
         // No body shader files, texture assets or full-resolution geometry are added.
         var guards=new Dictionary<Material,Material>();
@@ -149,7 +149,6 @@ public static class AudioLinkOutlineBuild
             var go=new GameObject(ChildName);go.transform.SetParent(source.transform,false);
             var shell=go.AddComponent<SkinnedMeshRenderer>();shell.sharedMesh=mesh;shell.bones=bones;shell.rootBone=root;shell.sharedMaterials=Enumerable.Range(0,mesh.subMeshCount).Select(slot=>{
                 var original=slot<source.sharedMaterials.Length?source.sharedMaterials[slot]:null;
-                if(!AudioLinkOutlineMesh.SupportedSurface(original))return new Material(s.outline);
                 var m=AudioLinkOutlineSurface.Create(original,s.outline,stencil,false);
                 m.SetFloat("_ALOBottom",bottom);m.SetFloat("_ALOHeight",top-bottom);m.SetFloat("_ALOBaseScale",Mathf.Abs(root.lossyScale.y));m.SetFloat("_ALOAvatarScale",1);return m;
             }).ToArray();shell.enabled=source.enabled;
@@ -180,7 +179,7 @@ public static class AudioLinkOutlineBuild
             var mask=maskGo.GetComponent<SkinnedMeshRenderer>();
             mask.sharedMaterials=Enumerable.Range(0,mesh.subMeshCount).Select(slot=>{
                 var original=slot<source.sharedMaterials.Length?source.sharedMaterials[slot]:null;
-                return AudioLinkOutlineMesh.SupportedSurface(original)?AudioLinkOutlineSurface.Create(original,s.outline,stencil,true):new Material(Shader.Find("Hidden/audiolink outline Surface Mask"));
+                return AudioLinkOutlineSurface.Create(original,s.outline,stencil,true);
             }).ToArray();
             string maskPath=AnimationUtility.CalculateTransformPath(mask.transform,root);
             foreach(var clip in clips.Concat(new[]{visibleClip,hiddenClip}))foreach(var binding in AnimationUtility.GetCurveBindings(clip).Where(b=>b.path==shellPath))

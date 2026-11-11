@@ -47,8 +47,9 @@ public static class AudioLinkOutlineMesh
     }
     public static bool SupportedSurface(Material material)=>material&&material.shader&&
         (material.HasProperty("_MainTex")||material.HasProperty("_BaseMap"));
+    public static bool HasUnverifiedSurface(SkinnedMeshRenderer source)=>source&&source.sharedMesh&&Enumerable.Range(0,source.sharedMesh.subMeshCount).Any(i=>source.sharedMesh.GetTopology(i)==UnityEngine.MeshTopology.Triangles&&(i>=source.sharedMaterials.Length||!SupportedSurface(source.sharedMaterials[i])));
     public static int[] Indices(SkinnedMeshRenderer source)=>Enumerable.Range(0,source.sharedMesh.subMeshCount)
-        .Where(i=>i<source.sharedMaterials.Length&&SupportedSurface(source.sharedMaterials[i])&&source.sharedMesh.GetTopology(i)==UnityEngine.MeshTopology.Triangles)
+        .Where(i=>source.sharedMesh.GetTopology(i)==UnityEngine.MeshTopology.Triangles)
         .SelectMany(i=>source.sharedMesh.GetTriangles(i)).ToArray();
 
     public static Mesh Create(SkinnedMeshRenderer source,int budget,HashSet<string> animated,out Transform[] bones)
@@ -61,7 +62,7 @@ public static class AudioLinkOutlineMesh
         Func<int,int> find=null;find=i=>{while(islands[i]!=i){islands[i]=islands[islands[i]];i=islands[i];}return i;};
         for(int i=0;i<indices.Length;i+=3){int a=find(indices[i]);islands[find(indices[i+1])]=a;islands[find(indices[i+2])]=a;}
         for(int i=0;i<islands.Length;i++)islands[i]=find(i);
-        var slots=Enumerable.Range(0,mesh.subMeshCount).Where(i=>i<source.sharedMaterials.Length&&SupportedSurface(source.sharedMaterials[i])&&mesh.GetTopology(i)==UnityEngine.MeshTopology.Triangles).SelectMany(i=>Enumerable.Repeat(i,mesh.GetTriangles(i).Length/3)).ToArray();
+        var slots=Enumerable.Range(0,mesh.subMeshCount).Where(i=>mesh.GetTopology(i)==UnityEngine.MeshTopology.Triangles).SelectMany(i=>Enumerable.Repeat(i,mesh.GetTriangles(i).Length/3)).ToArray();
         var dv=new Vector3[v.Length];var dn=new Vector3[v.Length];var dt=new Vector3[v.Length];
         // Bake static customization but retain exactly the weights and morph deltas
         // associated with the selected representative vertex across bending joints.

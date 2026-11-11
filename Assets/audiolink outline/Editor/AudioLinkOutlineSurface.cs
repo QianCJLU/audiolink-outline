@@ -7,11 +7,12 @@ public static class AudioLinkOutlineSurface {
  }
  public static Material Create(Material source,Material template,int stencil,bool mask) {
   var result=mask?new Material(Shader.Find("Hidden/audiolink outline Surface Mask")):new Material(template);
-  result.name=source.name+(mask?" [Contour Mask]":" [Contour Shell]");result.renderQueue=mask?4997:4998;result.SetInt("_ALOStencil",stencil);
+  result.name=(source?source.name:"Generic Surface")+(mask?" [Contour Mask]":" [Contour Shell]");result.renderQueue=mask?4997:4998;result.SetInt("_ALOStencil",stencil);
+  if(!source||!source.shader)return result;
   if(!mask)foreach(string property in new[]{"LightMinLimit","LightMaxLimit","MonochromeLighting","AsUnlit","VertexLightStrength"})
    if(source.HasProperty("_"+property))result.SetFloat("_ALO"+property,source.GetFloat("_"+property));
   string texture=source.HasProperty("_MainTex")?"_MainTex":"_BaseMap";
-  result.SetTexture("_ALOMainTex",source.GetTexture(texture));result.SetTextureScale("_ALOMainTex",source.GetTextureScale(texture));result.SetTextureOffset("_ALOMainTex",source.GetTextureOffset(texture));
+  if(source.HasProperty(texture)){result.SetTexture("_ALOMainTex",source.GetTexture(texture));result.SetTextureScale("_ALOMainTex",source.GetTextureScale(texture));result.SetTextureOffset("_ALOMainTex",source.GetTextureOffset(texture));}
   result.SetFloat("_ALOUseAlpha",UsesAlpha(source)?1:0);
   result.SetFloat("_ALOColorAlpha",source.HasProperty("_Color")?source.GetColor("_Color").a:source.HasProperty("_BaseColor")?source.GetColor("_BaseColor").a:1);
   // Soft transparent surfaces need a silhouette threshold, rather than a solid card.

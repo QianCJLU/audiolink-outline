@@ -8,7 +8,7 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using nadena.dev.modular_avatar.core;
 namespace AudioLinkOutlineLite.Editor {
  public static class AudioLinkOutlineLiteInstaller {
-  public const string Version="0.1.1",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
+  public const string Version="0.1.2",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
   public static void Repair(AudioLinkOutlineLiteSettings settings){
    var menu=settings.GetComponent<ModularAvatarMenuInstaller>()??Undo.AddComponent<ModularAvatarMenuInstaller>(settings.gameObject);
    var parameters=settings.GetComponent<ModularAvatarParameters>()??Undo.AddComponent<ModularAvatarParameters>(settings.gameObject);
@@ -48,8 +48,9 @@ namespace AudioLinkOutlineLite.Editor {
  }
  [CustomEditor(typeof(AudioLinkOutlineLiteSettings))]
  public sealed class AudioLinkOutlineLiteInspector:UnityEditor.Editor {
-  [SerializeField] int openSection=0;Vector2 meshScroll;string search="";
-  readonly string[] headings={"安装与目标","颜色与亮度","轮廓宽度","呼吸波形","剪影偏移","构建与兼容"};
+  [SerializeField] bool[] expanded={true,false,false,false,false};Vector2 meshScroll;string search="";
+  void OnEnable(){serializedObject.FindProperty("renderers").isExpanded=true;}
+  readonly string[] headings={"安装与目标","颜色与亮度","轮廓宽度","呼吸波形","剪影偏移"};
   public override void OnInspectorGUI(){
    serializedObject.Update();var settings=(AudioLinkOutlineLiteSettings)target;var avatar=settings.GetComponentInParent<VRCAvatarDescriptor>();
    using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
@@ -60,8 +61,8 @@ namespace AudioLinkOutlineLite.Editor {
     EditorGUILayout.LabelField("v"+AudioLinkOutlineLiteInstaller.Version+"  ·  游戏内开关与模式  ·  同步占用 2 bits",EditorStyles.miniLabel);
    }
    for(int section=0;section<headings.Length;section++){
-    bool was=openSection==section;bool now=EditorGUILayout.Foldout(was,headings[section],true,EditorStyles.foldoutHeader);if(now&&!was)openSection=section;else if(!now&&was)openSection=-1;
-    if(openSection!=section)continue;
+    expanded[section]=EditorGUILayout.Foldout(expanded[section],headings[section],true,EditorStyles.foldoutHeader);
+    if(!expanded[section])continue;
     using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
      switch(section){
       case 0:
@@ -83,13 +84,16 @@ namespace AudioLinkOutlineLite.Editor {
        var offset=serializedObject.FindProperty("offset");var value=offset.vector2Value;value.x=EditorGUILayout.Slider("水平",value.x,-1,1);value.y=EditorGUILayout.Slider("垂直",value.y,-1,1);offset.vector2Value=value;
        EditorGUILayout.LabelField("正值向右 / 向上，最大偏移约为角色高度的 5%。",EditorStyles.wordWrappedMiniLabel);
        if(GUILayout.Button("偏移归中"))offset.vector2Value=Vector2.zero;break;
-      case 5:
+
+     }
+    }
+   }
+   using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
+
        Field("shellTriangleBudget","新增三角面预算","轮廓和遮罩合计，默认 70,000，上限 200,000。");
        var bit=serializedObject.FindProperty("stencilBit");int[] bits={1,2,4,8,16,32,64,128};bit.intValue=EditorGUILayout.IntPopup("优先遮罩位",bit.intValue,bits.Select(v=>v.ToString()).ToArray(),bits);
        EditorGUILayout.LabelField("遮罩位冲突时自动避让。PC 蒙皮网格适用。",EditorStyles.wordWrappedMiniLabel);
-       if(GUILayout.Button("修复安装组件")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineLiteInstaller.Repair(settings);serializedObject.Update();}break;
-     }
-    }
+       if(GUILayout.Button("一键应用安装/修复")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineLiteInstaller.Repair(settings);serializedObject.Update();}
    }
    if(serializedObject.ApplyModifiedProperties())SceneView.RepaintAll();
    EditorGUILayout.LabelField("属性在构建时生效；修改后重新构建预览。",EditorStyles.wordWrappedMiniLabel);
@@ -97,14 +101,16 @@ namespace AudioLinkOutlineLite.Editor {
   void Field(string name,string label,string tip=""){EditorGUILayout.PropertyField(serializedObject.FindProperty(name),new GUIContent(label,tip));}
   void Set(string name,float value){serializedObject.FindProperty(name).floatValue=value;}
   void DrawTargets(VRCAvatarDescriptor avatar){
-   search=EditorGUILayout.TextField("搜索网格",search);var list=serializedObject.FindProperty("renderers");var selected=new System.Collections.Generic.HashSet<SkinnedMeshRenderer>();for(int i=0;i<list.arraySize;i++)if(list.GetArrayElementAtIndex(i).objectReferenceValue is SkinnedMeshRenderer r)selected.Add(r);
+   var list=serializedObject.FindProperty("renderers");EditorGUILayout.PropertyField(list,new GUIContent("手动拖入目标"),true);
+   search=EditorGUILayout.TextField("搜索网格",search);var selected=new System.Collections.Generic.HashSet<SkinnedMeshRenderer>();for(int i=0;i<list.arraySize;i++)if(list.GetArrayElementAtIndex(i).objectReferenceValue is SkinnedMeshRenderer r)selected.Add(r);
    EditorGUILayout.LabelField("已选 "+selected.Count+" 个网格",EditorStyles.miniLabel);
    var candidates=avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMesh&&r.name!="__ALOLiteOutline"&&r.name!="__ALOLiteMask").ToArray();
    using(var view=new EditorGUILayout.ScrollViewScope(meshScroll,GUILayout.Height(Mathf.Clamp(candidates.Length*21+6,45,180)))){
     meshScroll=view.scrollPosition;foreach(var r in candidates){string path=AnimationUtility.CalculateTransformPath(r.transform,avatar.transform);if(!string.IsNullOrWhiteSpace(search)&&path.IndexOf(search,StringComparison.OrdinalIgnoreCase)<0)continue;
-     bool supported=AudioLinkOutlineLiteMesh.Indices(r).Length>0;using(new EditorGUI.DisabledScope(!supported)){bool was=selected.Contains(r);bool next=EditorGUILayout.ToggleLeft(path+(supported?"":" [材质不支持]"),was);if(was!=next){if(next)selected.Add(r);else selected.Remove(r);list.arraySize=selected.Count;int i=0;foreach(var item in selected)list.GetArrayElementAtIndex(i++).objectReferenceValue=item;}}
+     bool supported=!AudioLinkOutlineLiteMesh.HasUnverifiedSurface(r);{bool was=selected.Contains(r);bool next=EditorGUILayout.ToggleLeft(path+(supported?"":" [可能有渲染问题]"),was);if(was!=next){if(next)selected.Add(r);else selected.Remove(r);list.arraySize=selected.Count;int i=0;foreach(var item in selected)list.GetArrayElementAtIndex(i++).objectReferenceValue=item;}}
     }
    }
+   if(selected.Any(AudioLinkOutlineLiteMesh.HasUnverifiedSurface))EditorGUILayout.HelpBox("所选网格包含未适配的着色器或缺失的材质，将尝试按通用表面生成轮廓，可能会有透明裁剪、遮挡或其他渲染问题。",MessageType.Warning);
    if(GUILayout.Button("清空选择"))list.arraySize=0;
   }
  }

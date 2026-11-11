@@ -15,7 +15,7 @@ namespace AudioLinkOutline.Editor
     {
         public const string Folder="Assets/audiolink outline";
         public const string PrefabPath=Folder+"/audiolink outline.prefab";
-        public const string Version="0.2.1";
+        public const string Version="0.2.2";
 
         public static AudioLinkOutlineSettings Install(VRCAvatarDescriptor avatar,VRCExpressionsMenu target)
         {
@@ -134,8 +134,9 @@ namespace AudioLinkOutline.Editor
 
  [CustomEditor(typeof(AudioLinkOutlineSettings))]
  public sealed class AudioLinkOutlineInspector:UnityEditor.Editor {
-  [SerializeField] int openSection=0;Vector2 meshScroll;string search="";
-  readonly string[] headings={"安装与目标","颜色与亮度","轮廓宽度","呼吸波形","剪影偏移","构建与兼容"};
+  [SerializeField] bool[] expanded={true,false,false,false,false};Vector2 meshScroll;string search="";
+  void OnEnable(){serializedObject.FindProperty("renderers").isExpanded=true;}
+  readonly string[] headings={"安装与目标","颜色与亮度","轮廓宽度","呼吸波形","剪影偏移"};
   public override void OnInspectorGUI(){
    serializedObject.Update();var settings=(AudioLinkOutlineSettings)target;var avatar=settings.GetComponentInParent<VRCAvatarDescriptor>();
    using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
@@ -146,8 +147,8 @@ namespace AudioLinkOutline.Editor
     EditorGUILayout.LabelField("v"+AudioLinkOutlineInstaller.Version+"  ·  游戏内调节范围  ·  同步占用 66 bits",EditorStyles.miniLabel);
    }
    for(int section=0;section<headings.Length;section++){
-    bool was=openSection==section;bool now=EditorGUILayout.Foldout(was,headings[section],true,EditorStyles.foldoutHeader);if(now&&!was)openSection=section;else if(!now&&was)openSection=-1;
-    if(openSection!=section)continue;
+    expanded[section]=EditorGUILayout.Foldout(expanded[section],headings[section],true,EditorStyles.foldoutHeader);
+    if(!expanded[section])continue;
     using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
      switch(section){
       case 0:
@@ -169,13 +170,16 @@ namespace AudioLinkOutline.Editor
        OffsetRange("horizontalLimits","水平偏移");OffsetRange("verticalLimits","垂直偏移");
        EditorGUILayout.LabelField("负向和正向极限分别对应轮盘左/下和右/上。中点与归中始终为 0；100% 偏移量约为角色高度的 5%。",EditorStyles.wordWrappedMiniLabel);
        if(GUILayout.Button("恢复此组默认")){ResetRange("horizontalLimits",true);ResetRange("verticalLimits",true);}break;
-      case 5:
+
+     }
+    }
+   }
+   using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
+
        Field("shellTriangleBudget","新增三角面预算","轮廓和遮罩合计，默认 70,000，上限 200,000。");
        var bit=serializedObject.FindProperty("stencilBit");int[] bits={1,2,4,8,16,32,64,128};bit.intValue=EditorGUILayout.IntPopup("优先遮罩位",bit.intValue,bits.Select(v=>v.ToString()).ToArray(),bits);
        EditorGUILayout.LabelField("遮罩位冲突时自动避让。PC 蒙皮网格适用。",EditorStyles.wordWrappedMiniLabel);
-       if(GUILayout.Button("修复安装组件")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineInstaller.Repair(settings);serializedObject.Update();}break;
-     }
-    }
+       if(GUILayout.Button("一键应用安装/修复")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineInstaller.Repair(settings);serializedObject.Update();}
    }
    if(serializedObject.ApplyModifiedProperties())SceneView.RepaintAll();
    EditorGUILayout.LabelField("轮盘 0% 对应下限，100% 对应上限。范围在构建时生效。",EditorStyles.wordWrappedMiniLabel);
@@ -197,14 +201,16 @@ namespace AudioLinkOutline.Editor
   }
   void ResetRange(string property,bool signed=false){serializedObject.FindProperty(property).vector2Value=new Vector2(signed?-1:0,1);}
   void DrawTargets(VRCAvatarDescriptor avatar){
-   search=EditorGUILayout.TextField("搜索网格",search);var list=serializedObject.FindProperty("renderers");var selected=new System.Collections.Generic.HashSet<SkinnedMeshRenderer>();for(int i=0;i<list.arraySize;i++)if(list.GetArrayElementAtIndex(i).objectReferenceValue is SkinnedMeshRenderer r)selected.Add(r);
+   var list=serializedObject.FindProperty("renderers");EditorGUILayout.PropertyField(list,new GUIContent("手动拖入目标"),true);
+   search=EditorGUILayout.TextField("搜索网格",search);var selected=new System.Collections.Generic.HashSet<SkinnedMeshRenderer>();for(int i=0;i<list.arraySize;i++)if(list.GetArrayElementAtIndex(i).objectReferenceValue is SkinnedMeshRenderer r)selected.Add(r);
    EditorGUILayout.LabelField("已选 "+selected.Count+" 个网格",EditorStyles.miniLabel);
    var candidates=avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMesh&&r.name!="__ALOOutline"&&r.name!="__ALOMask").ToArray();
    using(var view=new EditorGUILayout.ScrollViewScope(meshScroll,GUILayout.Height(Mathf.Clamp(candidates.Length*21+6,45,180)))){
     meshScroll=view.scrollPosition;foreach(var r in candidates){string path=AnimationUtility.CalculateTransformPath(r.transform,avatar.transform);if(!string.IsNullOrWhiteSpace(search)&&path.IndexOf(search,StringComparison.OrdinalIgnoreCase)<0)continue;
-     bool supported=AudioLinkOutlineMesh.Indices(r).Length>0;using(new EditorGUI.DisabledScope(!supported)){bool was=selected.Contains(r);bool next=EditorGUILayout.ToggleLeft(path+(supported?"":" [材质不支持]"),was);if(was!=next){if(next)selected.Add(r);else selected.Remove(r);list.arraySize=selected.Count;int i=0;foreach(var item in selected)list.GetArrayElementAtIndex(i++).objectReferenceValue=item;}}
+     bool supported=!AudioLinkOutlineMesh.HasUnverifiedSurface(r);{bool was=selected.Contains(r);bool next=EditorGUILayout.ToggleLeft(path+(supported?"":" [可能有渲染问题]"),was);if(was!=next){if(next)selected.Add(r);else selected.Remove(r);list.arraySize=selected.Count;int i=0;foreach(var item in selected)list.GetArrayElementAtIndex(i++).objectReferenceValue=item;}}
     }
    }
+   if(selected.Any(AudioLinkOutlineMesh.HasUnverifiedSurface))EditorGUILayout.HelpBox("所选网格包含未适配的着色器或缺失的材质，将尝试按通用表面生成轮廓，可能会有透明裁剪、遮挡或其他渲染问题。",MessageType.Warning);
    if(GUILayout.Button("清空选择"))list.arraySize=0;
   }
  }
