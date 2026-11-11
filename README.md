@@ -2,6 +2,15 @@
 
 用于 VRChat PC 角色的 AudioLink 音乐响应轮廓工具。
 
+## 版本
+
+| 版本 | 游戏内控制 | 同步参数 |
+|---|---|---|
+| [完整版 0.0.2](https://github.com/QianCJLU/audiolink-outline/releases/tag/v0.0.2) | 属性轮盘、四向偏移、开关与模式 | 66 bits |
+| [轻量版 0.1.0](https://github.com/QianCJLU/audiolink-outline/releases/tag/v0.1.0) | 总开关、固定呼吸、自动音频响应 | 2 bits |
+
+轻量版的亮度、色相、轮廓宽度、波峰幅度、呼吸波长、呼吸频率和偏移在 Unity 检查器中设置，构建时写入材质。检查器按安装与目标、颜色与亮度、轮廓宽度、呼吸波形、剪影偏移、构建与兼容分组，每次展开一组；网格列表支持搜索和限高滚动。
+
 ## 实现功能
 
 - 自动音频响应与手动呼吸波动两种模式。
@@ -24,15 +33,15 @@
 ## 安装方法
 
 1. 准备 Unity 2022.3、VRChat Avatars SDK、Modular Avatar 1.11+ 和 NDMF 1.11+。lilToon 材质需要安装 lilToon。
-2. 从 [Releases](https://github.com/QianCJLU/audiolink-outline/releases/latest) 下载 `.unitypackage` 并导入项目。
-3. 将 `Assets/audiolink outline/audiolink outline.prefab` 拖入带有 VRC Avatar Descriptor 的角色根对象下。
+2. 从上方对应版本的 Release 下载 `.unitypackage` 并导入项目。
+3. 将对应版本的预制件拖入带有 VRC Avatar Descriptor 的角色根对象下：完整版为 `Assets/audiolink outline/audiolink outline.prefab`，轻量版为 `Assets/audiolink outline lite/audiolink outline lite.prefab`。同一角色使用其中一种配置。
 4. 在预制件检查器中展开“勾选生成目标”，选择需要轮廓的网格，并设置面数预算。
 5. 通过预制件上的 **MA Menu Installer** 选择菜单安装位置。
 6. 构建预览或上传角色时生成轮廓。
 
 适用于 PC 角色的 SkinnedMeshRenderer。具有常规主纹理属性的其他材质可使用通用适配；特殊溶解、折射、几何扩展等效果不在适配范围内。
 
-## 使用方法
+## 完整版使用方法
 
 - **开启描边**：控制轮廓显示。
 - **描边属性**：调节亮度、色相、基础宽度、波峰宽度，并选择自动音频响应或手动呼吸模式。两种模式互斥，默认自动音频响应：房间提供 AudioLink 时响应音频，没有 AudioLink 时使用呼吸波动；AudioLink 静音不触发呼吸。
@@ -40,3 +49,9 @@
 - **呼吸频率**：50% 时周期为 4 秒，100% 时周期为 2 秒，0% 时停止传播。
 - **剪影偏移**：通过四向轮盘移动轮廓，100% 时最大偏移约为角色高度的 5%。
 - **偏移归中**：将轮廓偏移设为零。
+
+## 轻量版使用方法
+
+在 Unity 检查器中选择默认开关、默认模式、目标网格及外观属性。属性按分组展开，可恢复分组默认值，偏移可归中。通过 MA Menu Installer 设置菜单安装位置，构建预览或上传角色时应用设置。
+
+游戏内菜单提供开启描边、固定呼吸、自动音频响应。固定呼吸始终播放呼吸波动；自动音频响应在 AudioLink 可用时响应音频，不可用时播放呼吸波动，音乐静音不触发模式切换。
