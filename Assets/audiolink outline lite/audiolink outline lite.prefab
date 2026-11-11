@@ -59,6 +59,7 @@ MonoBehaviour:
   shellTriangleBudget: 70000
   renderers: []
   stencilBit: 64
+  installationConfirmed: 0
   outline: {fileID: 2100000, guid: 4962fad9b7d852e49ba6f429e94fc13f, type: 2}
 --- !u!114 &3133463456578390947
 MonoBehaviour:

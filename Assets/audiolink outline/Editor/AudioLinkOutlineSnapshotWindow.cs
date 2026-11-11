@@ -55,8 +55,7 @@ namespace AudioLinkOutline.Editor {
     }
     foreach(var camera in clone.GetComponentsInChildren<Camera>(true))camera.enabled=false;foreach(var listener in clone.GetComponentsInChildren<AudioListener>(true))listener.enabled=false;foreach(var animator in clone.GetComponentsInChildren<Animator>(true))animator.enabled=false;
     foreach(var light in Resources.FindObjectsOfTypeAll<Light>())if(light.gameObject.scene.IsValid()&&!EditorUtility.IsPersistent(light)&&light.isActiveAndEnabled&&light.gameObject.scene!=scene&&(!EditorSceneManager.IsPreviewScene(light.gameObject.scene)||light.gameObject.scene==avatar.gameObject.scene)&&!light.transform.IsChildOf(avatar.transform)){var go=new GameObject("Snapshot Light");UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go,scene);go.transform.SetPositionAndRotation(light.transform.position,light.transform.rotation);EditorUtility.CopySerialized(light,go.AddComponent<Light>());}
-    var copied=clone.GetComponentsInChildren<AudioLinkOutlineSettings>(true);foreach(var config in copied)if(PrefabUtility.IsPartOfPrefabInstance(config))PrefabUtility.UnpackPrefabInstance(PrefabUtility.GetOutermostPrefabInstanceRoot(config),PrefabUnpackMode.Completely,InteractionMode.AutomatedAction);
-    if(!nadena.dev.ndmf.AvatarProcessor.ProcessAvatar(clone,nadena.dev.ndmf.platform.AmbientPlatform.DefaultPlatform).Successful)throw new Exception("角色预览构建失败，请检查 Console。");
+    AudioLinkOutlinePreviewBuilder.Generate(configuration,owned);
     foreach(var animator in clone.GetComponentsInChildren<Animator>(true))animator.enabled=false;
     EditorUtility.DisplayProgressBar("轮廓快照","设置材质与场景灯光…",.6f);
     var shells=clone.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMaterials.Any(m=>m&&m.shader&&m.shader.name=="audiolink outline")).ToArray();if(shells.Length==0)throw new Exception("没有生成轮廓，请检查目标网格选择。");
@@ -86,7 +85,7 @@ namespace AudioLinkOutline.Editor {
      cameraCopy.Render();RenderTexture.active=rt;frames[mode]=new Texture2D(width,height,TextureFormat.RGB24,false){hideFlags=HideFlags.HideAndDontSave};frames[mode].ReadPixels(new Rect(0,0,width,height),0,0);frames[mode].Apply();
     }
     success=true;return frames;
-   }finally{EditorUtility.ClearProgressBar();RenderTexture.active=previous;if(cameraCopy)cameraCopy.targetTexture=null;if(rt){rt.Release();DestroyImmediate(rt);}EditorSceneManager.ClosePreviewScene(scene);foreach(var obj in owned)if(obj)DestroyImmediate(obj);if(!string.IsNullOrEmpty(generated)&&AssetDatabase.IsValidFolder(generated))AssetDatabase.DeleteAsset(generated);if(!success)foreach(var texture in frames)if(texture)DestroyImmediate(texture);}
+   }finally{EditorUtility.ClearProgressBar();RenderTexture.active=previous;if(cameraCopy)cameraCopy.targetTexture=null;if(rt){rt.Release();DestroyImmediate(rt);}EditorSceneManager.ClosePreviewScene(scene);foreach(var obj in owned)if(obj&&!EditorUtility.IsPersistent(obj))DestroyImmediate(obj);if(!string.IsNullOrEmpty(generated)&&AssetDatabase.IsValidFolder(generated))AssetDatabase.DeleteAsset(generated);if(!success)foreach(var texture in frames)if(texture)DestroyImmediate(texture);}
   }
  }
 }

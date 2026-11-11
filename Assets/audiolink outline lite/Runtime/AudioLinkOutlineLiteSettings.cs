@@ -11,6 +11,7 @@ namespace AudioLinkOutlineLite {
   [Range(MinimumTriangleBudget,MaximumTriangleBudget)] public int shellTriangleBudget=DefaultTriangleBudget;
   public SkinnedMeshRenderer[] renderers=new SkinnedMeshRenderer[0];
   [Range(1,128)] public int stencilBit=64;
+  [HideInInspector] public bool installationConfirmed;
   [HideInInspector] public Material outline;
  }
 }

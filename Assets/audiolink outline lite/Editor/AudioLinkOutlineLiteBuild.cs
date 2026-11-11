@@ -20,13 +20,17 @@ public sealed class AudioLinkOutlineLitePlugin : Plugin<AudioLinkOutlineLitePlug
         InPhase(BuildPhase.Resolving).BeforePlugin("nadena.dev.modular-avatar").Run("Upgrade audiolink outline lite Parameters",ctx=>{
             foreach(var settings in ctx.AvatarRootObject.GetComponentsInChildren<AudioLinkOutlineLiteSettings>(true))
             {
+                if(!settings.installationConfirmed){
+                    foreach(var component in settings.GetComponents<Component>().Where(c=>c is nadena.dev.modular_avatar.core.ModularAvatarMenuInstaller||c is nadena.dev.modular_avatar.core.ModularAvatarParameters||c is nadena.dev.modular_avatar.core.ModularAvatarMergeAnimator).ToArray())UnityEngine.Object.DestroyImmediate(component);
+                    continue;
+                }
                 var parameters=settings.GetComponent<nadena.dev.modular_avatar.core.ModularAvatarParameters>();
                 if(!parameters)continue;
                 AudioLinkOutlineLiteInstaller.ConfigureParameters(parameters,settings);
             }
         });
         InPhase(BuildPhase.Optimizing).AfterPlugin("nadena.dev.modular-avatar").BeforePlugin("com.anatawa12.avatar-optimizer").Run("Build audiolink outline lite",ctx=>{
-            var settings=ctx.AvatarRootObject.GetComponentsInChildren<AudioLinkOutlineLiteSettings>(true).Where(s=>s.enabled&&s.gameObject.activeInHierarchy).ToArray();
+            var settings=ctx.AvatarRootObject.GetComponentsInChildren<AudioLinkOutlineLiteSettings>(true).Where(s=>s.enabled&&s.installationConfirmed&&s.gameObject.activeInHierarchy).ToArray();
             if(settings.Length>1)throw new InvalidOperationException("同一角色只能安装一份音律轮廓，请移除重复的 audiolink outline lite 对象。");
             foreach(var s in settings)
             {if(EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android)AudioLinkOutlineLiteBuild.Apply(s);UnityEngine.Object.DestroyImmediate(s);}
@@ -52,12 +56,12 @@ public static class AudioLinkOutlineLiteBuild
         var avatar=s.GetComponentInParent<VRCAvatarDescriptor>();if(!avatar)throw new Exception("音律轮廓必须放在 Avatar Descriptor 的子物体中。");var root=avatar.transform;
         if(avatar.GetComponentsInChildren<Component>(true).Any(c=>c&&c.GetType().FullName=="AudioLinkOutline.AudioLinkOutlineSettings"))throw new Exception("请先从当前角色移除完整版预制件，再安装轻量版。同一角色使用一套轮廓配置。");
         if(avatar.GetComponentsInChildren<Component>(true).Any(c=>c&&c.GetType().Name=="PlumAudioOutline"))throw new Exception("角色已有旧版 Plum 轮廓，请先移除旧轮廓配置，再安装通用版。");
-        if(!s.outline)throw new Exception("缺少音律轮廓材质，请在 Inspector 中点击‘修复安装组件’。");
+        if(!s.outline)throw new Exception("缺少音律轮廓材质，请在 Inspector 中点击‘一键应用安装/修复’。");
         if(s.renderers==null||s.renderers.Length==0)throw new Exception("尚未选择描边部件。请选中音律轮廓配置，勾选需要的部件后再构建。");
         if(s.renderers.Any(r=>!r||!r.transform.IsChildOf(root)))throw new Exception("描边列表含已删除或其他角色的部件，请重新选择。");
         int stencil=s.stencilBit;if(stencil<1||stencil>128||(stencil&(stencil-1))!=0)throw new Exception("Stencil 位必须是 1/2/4/8/16/32/64/128。");
         var fx=avatar.baseAnimationLayers.Single(l=>l.type==VRCAvatarDescriptor.AnimLayerType.FX).animatorController as AnimatorController;
-        if(!fx)throw new Exception("MA 未生成 FX 控制器，请修复安装组件（MA Merge Animator）。");
+        if(!fx)throw new Exception("MA 未生成 FX 控制器，请一键应用安装/修复（MA Merge Animator）。");
         var defaults=fx.parameters;
         for(int i=0;i<defaults.Length;i++) {
             if(defaults[i].name==ToggleParameter)defaults[i].defaultBool=s.defaultOn;

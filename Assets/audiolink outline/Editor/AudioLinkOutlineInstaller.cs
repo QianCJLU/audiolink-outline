@@ -15,7 +15,7 @@ namespace AudioLinkOutline.Editor
     {
         public const string Folder="Assets/audiolink outline";
         public const string PrefabPath=Folder+"/audiolink outline.prefab";
-        public const string Version="0.2.4";
+        public const string Version="0.2.5";
 
         public static AudioLinkOutlineSettings Install(VRCAvatarDescriptor avatar,VRCExpressionsMenu target)
         {
@@ -49,6 +49,7 @@ namespace AudioLinkOutline.Editor
             var parameters=go.GetComponent<ModularAvatarParameters>();if(!parameters)parameters=Undo.AddComponent<ModularAvatarParameters>(go);
             var merge=go.GetComponent<ModularAvatarMergeAnimator>();if(!merge)merge=Undo.AddComponent<ModularAvatarMergeAnimator>(go);
             Undo.RecordObjects(new UnityEngine.Object[]{settings,menu,parameters,merge},"修复音律轮廓组件");
+            settings.installationConfirmed=true;
             settings.outline=AssetDatabase.LoadAssetAtPath<Material>(Folder+"/Resources/Outline.mat");
             menu.menuToAppend=AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(Folder+"/Resources/Menu Entry.asset");
             parameters.parameters=Enumerable.Range(0,AudioLinkOutlineBuild.Parameters.Length).Select(i=>new ParameterConfig{
@@ -116,7 +117,7 @@ namespace AudioLinkOutline.Editor
                 if(!controller.parameters.Any(p=>p.name==parameter))controller.AddParameter(new AnimatorControllerParameter{name=parameter,type=AnimatorControllerParameterType.Float,defaultFloat=AudioLinkOutlineBuild.DefaultValue(Array.IndexOf(AudioLinkOutlineBuild.Parameters,parameter))});
             if(!controller.parameters.Any(p=>p.name==AudioLinkOutlineBuild.ResetParameter))controller.AddParameter(AudioLinkOutlineBuild.ResetParameter,AnimatorControllerParameterType.Bool);
             EditorUtility.SetDirty(controller);
-            var go=new GameObject("audiolink outline");try{var settings=go.AddComponent<AudioLinkOutlineSettings>();Repair(settings);PrefabUtility.SaveAsPrefabAsset(go,PrefabPath);}finally{UnityEngine.Object.DestroyImmediate(go);}
+            var go=new GameObject("audiolink outline");try{var settings=go.AddComponent<AudioLinkOutlineSettings>();Repair(settings);settings.installationConfirmed=false;PrefabUtility.SaveAsPrefabAsset(go,PrefabPath);}finally{UnityEngine.Object.DestroyImmediate(go);}
             AssetDatabase.SaveAssets();
         }
         static VRCExpressionsMenu Menu(string path){var menu=AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(path);if(!menu){menu=ScriptableObject.CreateInstance<VRCExpressionsMenu>();AssetDatabase.CreateAsset(menu,path);}return menu;}
@@ -178,6 +179,7 @@ namespace AudioLinkOutline.Editor
        Field("shellTriangleBudget","新增三角面预算","轮廓和遮罩合计，默认 70,000，上限 200,000。");
        var bit=serializedObject.FindProperty("stencilBit");int[] bits={1,2,4,8,16,32,64,128};bit.intValue=EditorGUILayout.IntPopup("优先遮罩位",bit.intValue,bits.Select(v=>v.ToString()).ToArray(),bits);
        EditorGUILayout.LabelField("遮罩位冲突时自动避让。PC 蒙皮网格适用。",EditorStyles.wordWrappedMiniLabel);
+       EditorGUILayout.LabelField(settings.installationConfirmed?"已确认安装":"等待确认安装，可先预览效果。",EditorStyles.wordWrappedMiniLabel);
      using(new EditorGUI.DisabledScope(!avatar||(settings.renderers?.Length??0)==0))if(GUILayout.Button("预览效果")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineSnapshotWindow.Open(settings);GUIUtility.ExitGUI();}
        if(GUILayout.Button("一键应用安装/修复")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineInstaller.Repair(settings);serializedObject.Update();}
    }

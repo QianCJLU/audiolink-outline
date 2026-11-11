@@ -58,6 +58,7 @@ MonoBehaviour:
   breathFrequencyLimits: {x: 0, y: 1}
   horizontalLimits: {x: -1, y: 1}
   verticalLimits: {x: -1, y: 1}
+  installationConfirmed: 0
   outline: {fileID: 2100000, guid: 162ff26c55dd1674c93eef9151e9c424, type: 2}
 --- !u!114 &3429828221304702780
 MonoBehaviour:

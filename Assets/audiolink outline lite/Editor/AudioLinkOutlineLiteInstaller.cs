@@ -8,12 +8,13 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using nadena.dev.modular_avatar.core;
 namespace AudioLinkOutlineLite.Editor {
  public static class AudioLinkOutlineLiteInstaller {
-  public const string Version="0.1.4",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
+  public const string Version="0.1.5",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
   public static void Repair(AudioLinkOutlineLiteSettings settings){
    var menu=settings.GetComponent<ModularAvatarMenuInstaller>()??Undo.AddComponent<ModularAvatarMenuInstaller>(settings.gameObject);
    var parameters=settings.GetComponent<ModularAvatarParameters>()??Undo.AddComponent<ModularAvatarParameters>(settings.gameObject);
    var merge=settings.GetComponent<ModularAvatarMergeAnimator>()??Undo.AddComponent<ModularAvatarMergeAnimator>(settings.gameObject);
    Undo.RecordObjects(new UnityEngine.Object[]{settings,menu,parameters,merge},"配置轻量版安装组件");
+   settings.installationConfirmed=true;
    settings.outline=AssetDatabase.LoadAssetAtPath<Material>(Folder+"/Resources/Outline.mat");
    menu.menuToAppend=AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(Folder+"/Resources/Menu.asset");
    ConfigureParameters(parameters,settings);
@@ -43,7 +44,7 @@ namespace AudioLinkOutlineLite.Editor {
    var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>(Folder+"/Resources/Parameters.controller");if(!controller){controller=AnimatorController.CreateAnimatorControllerAtPath(Folder+"/Resources/Parameters.controller");controller.AddParameter(new AnimatorControllerParameter{name=AudioLinkOutlineLiteBuild.ToggleParameter,type=AnimatorControllerParameterType.Bool,defaultBool=true});var idle=controller.layers[0].stateMachine.AddState("Ready");}
    if(!controller.parameters.Any(p=>p.name==AudioLinkOutlineLiteBuild.ModeParameter))controller.AddParameter(AudioLinkOutlineLiteBuild.ModeParameter,AnimatorControllerParameterType.Bool);
    EditorUtility.SetDirty(controller);
-   var go=new GameObject("audiolink outline lite");try{var settings=go.AddComponent<AudioLinkOutlineLiteSettings>();Repair(settings);PrefabUtility.SaveAsPrefabAsset(go,PrefabPath);}finally{UnityEngine.Object.DestroyImmediate(go);}AssetDatabase.SaveAssets();
+   var go=new GameObject("audiolink outline lite");try{var settings=go.AddComponent<AudioLinkOutlineLiteSettings>();Repair(settings);settings.installationConfirmed=false;PrefabUtility.SaveAsPrefabAsset(go,PrefabPath);}finally{UnityEngine.Object.DestroyImmediate(go);}AssetDatabase.SaveAssets();
   }
  }
  [CustomEditor(typeof(AudioLinkOutlineLiteSettings))]
@@ -92,6 +93,7 @@ namespace AudioLinkOutlineLite.Editor {
        Field("shellTriangleBudget","新增三角面预算","轮廓和遮罩合计，默认 70,000，上限 200,000。");
        var bit=serializedObject.FindProperty("stencilBit");int[] bits={1,2,4,8,16,32,64,128};bit.intValue=EditorGUILayout.IntPopup("优先遮罩位",bit.intValue,bits.Select(v=>v.ToString()).ToArray(),bits);
        EditorGUILayout.LabelField("遮罩位冲突时自动避让。PC 蒙皮网格适用。",EditorStyles.wordWrappedMiniLabel);
+       EditorGUILayout.LabelField(settings.installationConfirmed?"已确认安装":"等待确认安装，可先预览效果。",EditorStyles.wordWrappedMiniLabel);
      using(new EditorGUI.DisabledScope(!avatar||(settings.renderers?.Length??0)==0))if(GUILayout.Button("预览效果")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineLiteSnapshotWindow.Open(settings);GUIUtility.ExitGUI();}
        if(GUILayout.Button("一键应用安装/修复")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineLiteInstaller.Repair(settings);serializedObject.Update();}
    }

@@ -20,6 +20,7 @@ namespace AudioLinkOutline
             return new Vector2(Mathf.Clamp01(Mathf.Min(value.x,value.y)),Mathf.Clamp01(Mathf.Max(value.x,value.y)));
         }
         public Vector2 OffsetRange(int axis){var value=axis==0?horizontalLimits:verticalLimits;return new Vector2(Mathf.Clamp(Mathf.Min(value.x,value.y),-1,0),Mathf.Clamp(Mathf.Max(value.x,value.y),0,1));}
+        [HideInInspector] public bool installationConfirmed;
         [HideInInspector] public Material outline;
     }
 }
