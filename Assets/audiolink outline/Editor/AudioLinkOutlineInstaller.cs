@@ -15,7 +15,7 @@ namespace AudioLinkOutline.Editor
     {
         public const string Folder="Assets/audiolink outline";
         public const string PrefabPath=Folder+"/audiolink outline.prefab";
-        public const string Version="0.0.2";
+        public const string Version="0.2.0";
 
         public static AudioLinkOutlineSettings Install(VRCAvatarDescriptor avatar,VRCExpressionsMenu target)
         {
@@ -59,6 +59,7 @@ namespace AudioLinkOutline.Editor
             AudioLinkOutlineOffsetSync.Configure(parameters);
             merge.animator=AssetDatabase.LoadAssetAtPath<AnimatorController>(Folder+"/Resources/Parameters.controller");
             merge.layerType=VRCAvatarDescriptor.AnimLayerType.FX;merge.pathMode=MergeAnimatorPathMode.Absolute;
+            parameters.hideFlags=HideFlags.HideInInspector;merge.hideFlags=HideFlags.HideInInspector;
             merge.matchAvatarWriteDefaults=true;merge.deleteAttachedAnimator=false;
             foreach(var obj in new UnityEngine.Object[]{settings,menu,parameters,merge}){EditorUtility.SetDirty(obj);if(PrefabUtility.IsPartOfPrefabInstance(obj))PrefabUtility.RecordPrefabInstancePropertyModifications(obj);}
         }
@@ -131,62 +132,76 @@ namespace AudioLinkOutline.Editor
         }
     }
 
-    [CustomEditor(typeof(AudioLinkOutlineSettings))]
-    public sealed class AudioLinkOutlineInspector:UnityEditor.Editor
-    {
-        [SerializeField] bool targetsExpanded;
-        Vector2 targetScroll;
-
-        public override void OnInspectorGUI()
-        {
-            var s=(AudioLinkOutlineSettings)target;var avatar=s.GetComponentInParent<VRCAvatarDescriptor>();
-            EditorGUILayout.LabelField("audiolink outline "+AudioLinkOutlineInstaller.Version,EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("放在角色根节点下即可随构建生成；编辑模式不直接生成重复网格。支持有主纹理属性的常见角色材质（含透明材质）；静态网格和粒子暂不支持。新增面数包含轮廓和遮罩。",MessageType.Info);
-            if(!avatar&&!EditorUtility.IsPersistent(s))EditorGUILayout.HelpBox("请把预制件拖到 Avatar Descriptor 根对象下面。",MessageType.Warning);
-            serializedObject.Update();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("shellTriangleBudget"),new GUIContent("新增轮廓面数上限"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("renderers"),new GUIContent("需要描边的部件（手动选择）"),true);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("stencilBit"),new GUIContent("优先遮罩位（冲突自动避让）"));
-            serializedObject.ApplyModifiedProperties();
-            if(s.renderers==null||s.renderers.Length==0)EditorGUILayout.HelpBox("尚未选择部件，不会自动生成轮廓。可拖入上方列表，或在下方直接勾选。",MessageType.Warning);
-            if(avatar)
-            {
-                EditorGUILayout.Space();
-                int selectedCount=(s.renderers??Array.Empty<SkinnedMeshRenderer>()).Where(r=>r).Distinct().Count();
-                targetsExpanded=EditorGUILayout.Foldout(targetsExpanded,"勾选生成目标（已选 "+selectedCount+"）",true,EditorStyles.foldoutHeader);
-                if(targetsExpanded)
-                {
-                var candidates=avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMesh&&r.name!=AudioLinkOutlineBuild.ChildName&&r.name!="__ALOMask").ToArray();
-                float height=Mathf.Min(240f,Mathf.Max(30f,candidates.Length*(EditorGUIUtility.singleLineHeight+EditorGUIUtility.standardVerticalSpacing)+8f));
-                using(var view=new EditorGUILayout.ScrollViewScope(targetScroll,GUILayout.Height(height)))
-                {
-                targetScroll=view.scrollPosition;
-                var selected=new HashSet<SkinnedMeshRenderer>(s.renderers??Array.Empty<SkinnedMeshRenderer>());
-                foreach(var r in candidates)
-                {
-                    bool supported=AudioLinkOutlineMesh.Indices(r).Length>0;
-                    using(new EditorGUI.DisabledScope(!supported))
-                    {
-                        bool was=selected.Contains(r);
-                        bool chosen=EditorGUILayout.ToggleLeft(AnimationUtility.CalculateTransformPath(r.transform,avatar.transform)+(supported?"":" [材质不支持]"),was);
-                        if(chosen!=was)
-                        {
-                            Undo.RecordObject(s,"选择轮廓目标");
-                            if(chosen)selected.Add(r);else selected.Remove(r);
-                            s.renderers=selected.Where(x=>x).ToArray();EditorUtility.SetDirty(s);PrefabUtility.RecordPrefabInstancePropertyModifications(s);
-                        }
-                    }
-                }
-                }
-                }
-            }
-            EditorGUILayout.HelpBox("在下方 MA Menu Installer 中选择菜单安装位置。亮度为 0 时接收环境光；使用开启描边开关完全关闭轮廓。",MessageType.Info);
-            if(GUILayout.Button("修复安装组件（不修改原菜单）"))AudioLinkOutlineInstaller.Repair(s);
-            if(avatar&&GUILayout.Button("检查将包含哪些网格"))
-            {
-                var list=avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMesh&&AudioLinkOutlineBuild.Selected(r,avatar.transform,s)&&AudioLinkOutlineMesh.Indices(r).Length>0).Select(r=>AnimationUtility.CalculateTransformPath(r.transform,avatar.transform)).ToArray();
-                EditorUtility.DisplayDialog("将生成轮廓的部件（构建前预览）",list.Length==0?"没有支持的网格。":string.Join("\n",list),"确定");
-            }
-        }
+ [CustomEditor(typeof(AudioLinkOutlineSettings))]
+ public sealed class AudioLinkOutlineInspector:UnityEditor.Editor {
+  [SerializeField] int openSection=0;Vector2 meshScroll;string search="";
+  readonly string[] headings={"安装与目标","颜色与亮度","轮廓宽度","呼吸波形","剪影偏移","构建与兼容"};
+  public override void OnInspectorGUI(){
+   serializedObject.Update();var settings=(AudioLinkOutlineSettings)target;var avatar=settings.GetComponentInParent<VRCAvatarDescriptor>();
+   using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
+    EditorGUILayout.LabelField("audiolink outline",EditorStyles.boldLabel);EditorGUILayout.LabelField("v"+AudioLinkOutlineInstaller.Version+"  ·  游戏内调节范围  ·  同步占用 66 bits",EditorStyles.miniLabel);
+   }
+   for(int section=0;section<headings.Length;section++){
+    bool was=openSection==section;bool now=EditorGUILayout.Foldout(was,headings[section],true,EditorStyles.foldoutHeader);if(now&&!was)openSection=section;else if(!now&&was)openSection=-1;
+    if(openSection!=section)continue;
+    using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
+     switch(section){
+      case 0:
+       if(!avatar)EditorGUILayout.HelpBox("将此预制件拖到带 Avatar Descriptor 的角色根对象下，再选择目标网格。",MessageType.Info);
+       else DrawTargets(avatar);
+       EditorGUILayout.LabelField("菜单位置：在下方 MA Menu Installer 中选择。",EditorStyles.wordWrappedMiniLabel);break;
+      case 1:
+       Range("brightnessLimits","亮度");Range("hueLimits","色相");
+       EditorGUILayout.LabelField("亮度下限 0 使用场景光照；色相上限 100% 可启用循环彩虹。",EditorStyles.wordWrappedMiniLabel);
+       if(GUILayout.Button("恢复此组默认")){ResetRange("brightnessLimits");ResetRange("hueLimits");}break;
+      case 2:
+       Range("widthLimits","基础轮廓宽度");Range("waveWidthLimits","波峰外扩幅度");
+       if(GUILayout.Button("恢复此组默认")){ResetRange("widthLimits");ResetRange("waveWidthLimits");}break;
+      case 3:
+       Range("breathLengthLimits","呼吸波长");Range("breathFrequencyLimits","呼吸频率");
+       EditorGUILayout.LabelField("实际值 50%：波长约身高 25%、频率为四秒周期。100%：波长约身高 50%、频率为两秒周期。",EditorStyles.wordWrappedMiniLabel);
+       if(GUILayout.Button("恢复此组默认")){ResetRange("breathLengthLimits");ResetRange("breathFrequencyLimits");}break;
+      case 4:
+       OffsetRange("horizontalLimits","水平偏移");OffsetRange("verticalLimits","垂直偏移");
+       EditorGUILayout.LabelField("负向和正向极限分别对应轮盘左/下和右/上。中点与归中始终为 0；100% 偏移量约为角色高度的 5%。",EditorStyles.wordWrappedMiniLabel);
+       if(GUILayout.Button("恢复此组默认")){ResetRange("horizontalLimits",true);ResetRange("verticalLimits",true);}break;
+      case 5:
+       Field("shellTriangleBudget","新增三角面预算","轮廓和遮罩合计，默认 70,000，上限 200,000。");
+       var bit=serializedObject.FindProperty("stencilBit");int[] bits={1,2,4,8,16,32,64,128};bit.intValue=EditorGUILayout.IntPopup("优先遮罩位",bit.intValue,bits.Select(v=>v.ToString()).ToArray(),bits);
+       EditorGUILayout.LabelField("遮罩位冲突时自动避让。PC 蒙皮网格适用。",EditorStyles.wordWrappedMiniLabel);
+       if(GUILayout.Button("修复安装组件")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineInstaller.Repair(settings);serializedObject.Update();}break;
+     }
     }
+   }
+   if(serializedObject.ApplyModifiedProperties())SceneView.RepaintAll();
+   EditorGUILayout.LabelField("轮盘 0% 对应下限，100% 对应上限。范围在构建时生效。",EditorStyles.wordWrappedMiniLabel);
+  }
+  void Field(string name,string label,string tip=""){EditorGUILayout.PropertyField(serializedObject.FindProperty(name),new GUIContent(label,tip));}
+  void Range(string property,string label){
+   var p=serializedObject.FindProperty(property);Vector2 value=p.vector2Value;float min=Mathf.Clamp01(Mathf.Min(value.x,value.y))*100,max=Mathf.Clamp01(Mathf.Max(value.x,value.y))*100;
+   EditorGUILayout.LabelField(label,EditorStyles.boldLabel);
+   EditorGUILayout.MinMaxSlider(ref min,ref max,0,100);
+   float previousLabelWidth=EditorGUIUtility.labelWidth;
+   try {EditorGUIUtility.labelWidth=58;using(new EditorGUILayout.HorizontalScope()){
+    min=EditorGUILayout.FloatField(new GUIContent("下限 (%)"),min);max=EditorGUILayout.FloatField(new GUIContent("上限 (%)"),max);
+   }}finally{EditorGUIUtility.labelWidth=previousLabelWidth;}
+   min=Mathf.Clamp(min,0,100);max=Mathf.Clamp(max,min,100);p.vector2Value=new Vector2(min/100,max/100);
+  }
+  void OffsetRange(string property,string label){
+   var p=serializedObject.FindProperty(property);Vector2 value=p.vector2Value;EditorGUILayout.LabelField(label,EditorStyles.boldLabel);
+   value.x=EditorGUILayout.Slider("负向下限 (%)",value.x*100,-100,0)/100;value.y=EditorGUILayout.Slider("正向上限 (%)",value.y*100,0,100)/100;p.vector2Value=value;
+  }
+  void ResetRange(string property,bool signed=false){serializedObject.FindProperty(property).vector2Value=new Vector2(signed?-1:0,1);}
+  void DrawTargets(VRCAvatarDescriptor avatar){
+   search=EditorGUILayout.TextField("搜索网格",search);var list=serializedObject.FindProperty("renderers");var selected=new System.Collections.Generic.HashSet<SkinnedMeshRenderer>();for(int i=0;i<list.arraySize;i++)if(list.GetArrayElementAtIndex(i).objectReferenceValue is SkinnedMeshRenderer r)selected.Add(r);
+   EditorGUILayout.LabelField("已选 "+selected.Count+" 个网格",EditorStyles.miniLabel);
+   var candidates=avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.sharedMesh&&r.name!="__ALOOutline"&&r.name!="__ALOMask").ToArray();
+   using(var view=new EditorGUILayout.ScrollViewScope(meshScroll,GUILayout.Height(Mathf.Clamp(candidates.Length*21+6,45,180)))){
+    meshScroll=view.scrollPosition;foreach(var r in candidates){string path=AnimationUtility.CalculateTransformPath(r.transform,avatar.transform);if(!string.IsNullOrWhiteSpace(search)&&path.IndexOf(search,StringComparison.OrdinalIgnoreCase)<0)continue;
+     bool supported=AudioLinkOutlineMesh.Indices(r).Length>0;using(new EditorGUI.DisabledScope(!supported)){bool was=selected.Contains(r);bool next=EditorGUILayout.ToggleLeft(path+(supported?"":" [材质不支持]"),was);if(was!=next){if(next)selected.Add(r);else selected.Remove(r);list.arraySize=selected.Count;int i=0;foreach(var item in selected)list.GetArrayElementAtIndex(i++).objectReferenceValue=item;}}
+    }
+   }
+   if(GUILayout.Button("清空选择"))list.arraySize=0;
+  }
+ }
 }

@@ -50,6 +50,14 @@ MonoBehaviour:
   shellTriangleBudget: 70000
   renderers: []
   stencilBit: 64
+  brightnessLimits: {x: 0, y: 1}
+  widthLimits: {x: 0, y: 1}
+  waveWidthLimits: {x: 0, y: 1}
+  hueLimits: {x: 0, y: 1}
+  breathLengthLimits: {x: 0, y: 1}
+  breathFrequencyLimits: {x: 0, y: 1}
+  horizontalLimits: {x: -1, y: 1}
+  verticalLimits: {x: -1, y: 1}
   outline: {fileID: 2100000, guid: 162ff26c55dd1674c93eef9151e9c424, type: 2}
 --- !u!114 &3429828221304702780
 MonoBehaviour:

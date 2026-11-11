@@ -171,8 +171,8 @@ public static class AudioLinkOutlineBuild
             }
             foreach(var clip in clips)foreach(var b in AnimationUtility.GetCurveBindings(clip).Where(b=>b.path==p&&b.type==typeof(SkinnedMeshRenderer)&&(b.propertyName=="m_Enabled"||(b.propertyName.StartsWith("blendShape.")&&mesh.GetBlendShapeIndex(b.propertyName.Substring(11))>=0))))
             {var copy=b;copy.path=shellPath;AnimationUtility.SetEditorCurve(clip,copy,AnimationUtility.GetEditorCurve(clip,b));}
-            for(int c=0;c<controls.Length;c++)if(c<5||c>8)AnimationUtility.SetEditorCurve(controls[c],EditorCurveBinding.FloatCurve(shellPath,typeof(SkinnedMeshRenderer),"material."+Properties[c]),AnimationCurve.Linear(0,0,1,1));
-            for(int axis=0;axis<2;axis++)for(int step=0;step<3;step++)AnimationUtility.SetEditorCurve(axisClips[axis][step],EditorCurveBinding.FloatCurve(shellPath,typeof(SkinnedMeshRenderer),"material."+(axis==0?"_ALOOffsetHorizontal":"_ALOOffsetVertical")),AnimationCurve.Constant(0,1,step-1));
+            for(int c=0;c<controls.Length;c++)if(c<5||c>8)AnimationUtility.SetEditorCurve(controls[c],EditorCurveBinding.FloatCurve(shellPath,typeof(SkinnedMeshRenderer),"material."+Properties[c]),AnimationCurve.Linear(0,s.ControlRange(c).x,1,s.ControlRange(c).y));
+            for(int axis=0;axis<2;axis++)for(int step=0;step<3;step++)AnimationUtility.SetEditorCurve(axisClips[axis][step],EditorCurveBinding.FloatCurve(shellPath,typeof(SkinnedMeshRenderer),"material."+(axis==0?"_ALOOffsetHorizontal":"_ALOOffsetVertical")),AnimationCurve.Constant(0,1,step==0?s.OffsetRange(axis).x:step==2?s.OffsetRange(axis).y:0));
             var sb=EditorCurveBinding.FloatCurve(shellPath,typeof(SkinnedMeshRenderer),"material._ALOAvatarScale");
             AnimationUtility.SetEditorCurve(scaleLow,sb,AnimationCurve.Constant(0,1,0));AnimationUtility.SetEditorCurve(scaleHigh,sb,AnimationCurve.Constant(0,1,1000));
             // Copy renderer settings, skin and all newly authored curves to the mask.
