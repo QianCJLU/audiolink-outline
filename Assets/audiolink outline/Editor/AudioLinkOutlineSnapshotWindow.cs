@@ -7,16 +7,16 @@ using UnityEditor.SceneManagement;
 using VRC.SDK3.Avatars.Components;
 namespace AudioLinkOutline.Editor {
  public sealed class AudioLinkOutlineSnapshotWindow:EditorWindow {
-  AudioLinkOutlineSettings settings;Camera sourceCamera;Texture2D[] images;string error="";int imageIndex,rangeChoice;string installStatus="";string peakLabel="波峰最大处";
+  AudioLinkOutlineSettings settings;Camera sourceCamera;Texture2D[] images;string error="";int imageIndex=1,rangeChoice;string installStatus="";string peakLabel="模拟音频响应";
   public static void Open(AudioLinkOutlineSettings settings){var window=GetWindow<AudioLinkOutlineSnapshotWindow>(true,"预览效果",true);window.settings=settings;window.sourceCamera=SceneView.lastActiveSceneView?SceneView.lastActiveSceneView.camera:null;window.minSize=new Vector2(440,430);window.Show();EditorApplication.delayCall+=window.Refresh;}
   void OnGUI(){
    if(!settings){EditorGUILayout.HelpBox("请选择角色上的轮廓配置。",MessageType.Info);return;}
    EditorGUILayout.LabelField("摄像头", "当前 Scene 视图");
    rangeChoice=EditorGUILayout.Popup("范围取值",rangeChoice,new[]{"游戏默认值","范围下限","范围上限"});
    if(GUILayout.Button("刷新预览"))Refresh();
-   EditorGUILayout.HelpBox("按摄像头视角和场景灯光渲染当前角色，不包含场景其他物体遮挡和相机后处理。基础图不叠加波动；峰值图将整圈外扩到当前模式峰值；外观图使用固定时刻。快照强制显示轮廓。",MessageType.Info);
+   EditorGUILayout.HelpBox("预览强制开启轮廓并模拟 AudioLink，无需场景中实际存在 AudioLink。未响应显示基础宽度；模拟音频响应显示最大波峰；颜色与亮度使用固定时刻的模拟音频波形。不包含其他场景物体遮挡和相机后处理。",MessageType.Info);
    if(!string.IsNullOrEmpty(error))EditorGUILayout.HelpBox(error,MessageType.Error);
-   imageIndex=GUILayout.Toolbar(imageIndex,new[]{"未响应轮廓",peakLabel,"颜色与亮度"});
+   imageIndex=GUILayout.Toolbar(imageIndex,new[]{"未响应轮廓",peakLabel,"颜色与亮度（模拟音频）"});
    if(images!=null&&images[imageIndex]){
     var texture=images[imageIndex];var area=GUILayoutUtility.GetRect(1,10000,100,10000,GUILayout.ExpandWidth(true),GUILayout.ExpandHeight(true));EditorGUI.DrawRect(area,new Color(.12f,.12f,.12f));GUI.DrawTexture(area,texture,ScaleMode.ScaleToFit,false);
 
@@ -31,7 +31,7 @@ namespace AudioLinkOutline.Editor {
   }
   void Refresh(){if(!this||!settings)return;sourceCamera=SceneView.lastActiveSceneView?SceneView.lastActiveSceneView.camera:null;installStatus="";try{
     var frames=Capture(settings,sourceCamera,rangeChoice,false);DisposeImages();images=frames;error="";
-    bool manual=false;var audio=Shader.GetGlobalTexture("_AudioTexture");peakLabel=manual||!audio||audio.width<128||audio.height<4?"呼吸峰值":"音频峰值";
+
    }catch(Exception e){error=e.Message;Debug.LogException(e);}Repaint();}
   void DisposeImages(){if(images!=null)foreach(var texture in images)if(texture)DestroyImmediate(texture);images=null;}
   void OnDisable(){DisposeImages();}
@@ -75,12 +75,14 @@ namespace AudioLinkOutline.Editor {
         foreach(var light in Resources.FindObjectsOfTypeAll<Light>())if(light.gameObject.scene==scene)light.enabled=false;
         var headlight=new GameObject("Scene view preview light");UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(headlight,scene);headlight.transform.rotation=source.transform.rotation;var previewLight=headlight.AddComponent<Light>();previewLight.type=LightType.Directional;previewLight.intensity=1;
     }
-    var cameraGo=new GameObject("Snapshot Camera");UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(cameraGo,scene);cameraCopy=cameraGo.AddComponent<Camera>();cameraCopy.CopyFrom(source);cameraCopy.enabled=false;cameraCopy.renderingPath=RenderingPath.Forward;cameraCopy.useOcclusionCulling=false;foreach(var renderer in effects)cameraCopy.cullingMask|=1<<renderer.gameObject.layer;cameraCopy.scene=scene;cameraCopy.stereoTargetEye=StereoTargetEyeMask.None;cameraCopy.clearFlags=CameraClearFlags.SolidColor;cameraCopy.transform.SetPositionAndRotation(source.transform.position,source.transform.rotation);
+    var cameraGo=new GameObject("Snapshot Camera");UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(cameraGo,scene);cameraCopy=cameraGo.AddComponent<Camera>();cameraCopy.CopyFrom(source);cameraCopy.enabled=false;cameraCopy.renderingPath=RenderingPath.Forward;cameraCopy.useOcclusionCulling=false;foreach(var renderer in effects)cameraCopy.cullingMask|=1<<renderer.gameObject.layer;cameraCopy.scene=scene;cameraCopy.overrideSceneCullingMask=EditorSceneManager.GetSceneCullingMask(scene);cameraCopy.stereoTargetEye=StereoTargetEyeMask.None;cameraCopy.clearFlags=CameraClearFlags.SolidColor;cameraCopy.transform.SetPositionAndRotation(source.transform.position,source.transform.rotation);
     if(framed){var bounds=shells[0].bounds;foreach(var renderer in shells.Skip(1))bounds.Encapsulate(renderer.bounds);float radius=Mathf.Max(.05f,bounds.extents.magnitude);cameraCopy.transform.position=bounds.center-source.transform.forward*radius*3;cameraCopy.transform.rotation=source.transform.rotation;if(cameraCopy.orthographic)cameraCopy.orthographicSize=radius*1.1f;cameraCopy.nearClipPlane=.01f;cameraCopy.farClipPlane=Mathf.Max(cameraCopy.farClipPlane,radius*8);}
     int width=1024,height=Mathf.Clamp(Mathf.RoundToInt(width/Mathf.Max(.2f,source.aspect)),256,1024);rt=new RenderTexture(width,height,24,RenderTextureFormat.ARGB32);rt.Create();cameraCopy.targetTexture=rt;cameraCopy.aspect=source.aspect;
-    var audio=Shader.GetGlobalTexture("_AudioTexture");bool manual=false;float peak=manual||!audio||audio.width<128||audio.height<4?.5f:1;float clock=(float)(EditorApplication.timeSinceStartup%120);
+    var simulatedAudio=new Texture2D(128,64,TextureFormat.RGBAFloat,false,true){hideFlags=HideFlags.HideAndDontSave};owned.Add(simulatedAudio);
+    var samples=new Color[128*64];float[] bands={.85f,.65f,.95f,.55f};for(int band=0;band<4;band++)for(int column=0;column<128;column++)samples[band*128+column]=new Color(bands[band],0,0,1);simulatedAudio.SetPixels(samples);simulatedAudio.Apply();
+    float clock=1.24f;
     for(int mode=0;mode<3;mode++){
-     foreach(var material in materials){material.SetFloat("_ALOOn",1);material.SetFloat("_ALOAvatarScale",1);material.SetFloat("_ALODebugHeight",0);material.SetFloat("_ALOTestClock",1);material.SetFloat("_ALOTime",clock);material.SetFloat("_ALOPreviewWave",mode==0?0:mode==1?peak:-1);}
+     foreach(var material in materials){material.SetFloat("_ALOBreath",0);material.SetFloat("_ALOPreviewAudioEnabled",1);material.SetTexture("_ALOPreviewAudioTexture",simulatedAudio);material.SetFloat("_ALOOn",1);material.SetFloat("_ALOAvatarScale",1);material.SetFloat("_ALODebugHeight",0);material.SetFloat("_ALOTestClock",1);material.SetFloat("_ALOTime",clock);material.SetFloat("_ALOPreviewWave",mode==0?0:mode==1?1:-1);}
      EditorUtility.DisplayProgressBar("轮廓快照","渲染快照 "+(mode+1)+" / 3",.7f+mode*.1f);
      cameraCopy.Render();RenderTexture.active=rt;frames[mode]=new Texture2D(width,height,TextureFormat.RGB24,false){hideFlags=HideFlags.HideAndDontSave};frames[mode].ReadPixels(new Rect(0,0,width,height),0,0);frames[mode].Apply();
     }

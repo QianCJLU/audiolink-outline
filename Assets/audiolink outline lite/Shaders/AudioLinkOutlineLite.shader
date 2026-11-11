@@ -32,6 +32,8 @@ Shader "audiolink outline lite"
         _ALOBottom ("Bottom",Float)=0
         _ALOBaseScale ("Authored scale",Float)=1
         _ALOAvatarScale ("VRChat ScaleFactor",Float)=1
+        [HideInInspector] _ALOPreviewAudioTexture ("Editor simulated audio",2D)="black" {}
+        [HideInInspector] _ALOPreviewAudioEnabled ("Editor simulated audio enabled",Float)=0
         [HideInInspector] _ALOPreviewWave ("Editor snapshot wave",Float)=-1
         [HideInInspector] _ALOTestClock ("Test clock",Float)=0
         [HideInInspector] _ALOTime ("Test time",Float)=0
@@ -73,7 +75,7 @@ Shader "audiolink outline lite"
                 }
                 else
                 {
-                    uint w,h;_AudioTexture.GetDimensions(w,h);if(w<128||h<4)return 1;
+                    uint w,h;ALOAudioDimensions(w,h);if(w<128||h<4)return 1;
                     float phase=frac(ALOClock()/12);
                     crest=ceil(6*(lo+phase-0.015)+0.5)<=floor(6*(hi+phase+0.015)+0.5);
                 }
@@ -100,7 +102,7 @@ Shader "audiolink outline lite"
                     }
                     else
                     {
-                        uint w,h;_AudioTexture.GetDimensions(w,h);
+                        uint w,h;ALOAudioDimensions(w,h);
                         if(w<128||h<4)return f;
                     }
                 }

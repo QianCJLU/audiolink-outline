@@ -2,6 +2,8 @@
 #include "Lighting.cginc"
 #include "SurfaceAlpha.cginc"
 Texture2D<float4> _AudioTexture;
+Texture2D<float4> _ALOPreviewAudioTexture;
+float _ALOPreviewAudioEnabled;
 float _ALOOn, _ALOBrightness, _ALOWidth, _ALOHue, _ALOBreath;
 float _ALOWaveWidth, _ALOBreathLength, _ALOBreathFrequency;
 float _ALOOffsetHorizontal, _ALOOffsetVertical;
@@ -27,11 +29,21 @@ bool ALOBreathIntersects(float low,float high)
     float phase=0.06-ALOClock()*0.25*(2*saturate(_ALOBreathFrequency));
     return ceil(phase+low*0.5-ALO_BREATH_PHASE_RADIUS-0.00001)<=floor(phase+high*0.5+ALO_BREATH_PHASE_RADIUS+0.00001);
 }
+void ALOAudioDimensions(out uint width,out uint rows)
+{
+    if(_ALOTestClock>0.5&&_ALOPreviewAudioEnabled>0.5)_ALOPreviewAudioTexture.GetDimensions(width,rows);
+    else _AudioTexture.GetDimensions(width,rows);
+}
+float ALOAudioSample(int column,int band)
+{
+    if(_ALOTestClock>0.5&&_ALOPreviewAudioEnabled>0.5)return _ALOPreviewAudioTexture.Load(int3(column,band,0)).r;
+    return _AudioTexture.Load(int3(column,band,0)).r;
+}
 // A compatible global AudioLink texture selects audio even during silence.
 bool ALOUseBreathing()
 {
     if(_ALOBreath>0.5)return true;
-    uint width,rows;_AudioTexture.GetDimensions(width,rows);
+    uint width,rows;ALOAudioDimensions(width,rows);
     return width<128||rows<4;
 }
 float ALOWave(float height)
@@ -47,7 +59,7 @@ float ALOWave(float height)
         float spike=saturate(1-min(phase,1-phase)/max(ALO_BREATH_PHASE_RADIUS,0.000001));
         return 0.5*spike*spike*(3-2*spike);
     }
-    uint width,rows;_AudioTexture.GetDimensions(width,rows);
+    uint width,rows;ALOAudioDimensions(width,rows);
     if(width<128||rows<4)return 0;
     float h=frac((0.5+height*255)/256+clock/12);
     float shape=pow(saturate(1-abs(sin(UNITY_PI*(6*h+0.5)))),1.3);
@@ -60,7 +72,7 @@ float ALOWave(float height)
         float envelope=0.14+0.86*exp(-0.5*d*d/(0.13*0.13));
         float delay=0.5+2*(0.5+0.5*sin(2*UNITY_PI*(0.5-h)+band*1.71));
         int column=(int)floor(delay);
-        float audio=lerp(_AudioTexture.Load(int3(column,band,0)).r,_AudioTexture.Load(int3(column+1,band,0)).r,frac(delay));
+        float audio=lerp(ALOAudioSample(column,band),ALOAudioSample(column+1,band),frac(delay));
         response=max(response,saturate(audio)*envelope);
     }
     return response*shape;

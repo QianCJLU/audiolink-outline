@@ -8,7 +8,7 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using nadena.dev.modular_avatar.core;
 namespace AudioLinkOutlineLite.Editor {
  public static class AudioLinkOutlineLiteInstaller {
-  public const string Version="0.1.5",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
+  public const string Version="0.1.6",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
   public static void Repair(AudioLinkOutlineLiteSettings settings){
    var menu=settings.GetComponent<ModularAvatarMenuInstaller>()??Undo.AddComponent<ModularAvatarMenuInstaller>(settings.gameObject);
    var parameters=settings.GetComponent<ModularAvatarParameters>()??Undo.AddComponent<ModularAvatarParameters>(settings.gameObject);

@@ -15,7 +15,7 @@ namespace AudioLinkOutline.Editor
     {
         public const string Folder="Assets/audiolink outline";
         public const string PrefabPath=Folder+"/audiolink outline.prefab";
-        public const string Version="0.2.5";
+        public const string Version="0.2.6";
 
         public static AudioLinkOutlineSettings Install(VRCAvatarDescriptor avatar,VRCExpressionsMenu target)
         {
