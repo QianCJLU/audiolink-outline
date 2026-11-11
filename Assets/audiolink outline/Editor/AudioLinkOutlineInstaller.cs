@@ -15,7 +15,7 @@ namespace AudioLinkOutline.Editor
     {
         public const string Folder="Assets/audiolink outline";
         public const string PrefabPath=Folder+"/audiolink outline.prefab";
-        public const string Version="0.2.0";
+        public const string Version="0.2.1";
 
         public static AudioLinkOutlineSettings Install(VRCAvatarDescriptor avatar,VRCExpressionsMenu target)
         {
@@ -139,7 +139,11 @@ namespace AudioLinkOutline.Editor
   public override void OnInspectorGUI(){
    serializedObject.Update();var settings=(AudioLinkOutlineSettings)target;var avatar=settings.GetComponentInParent<VRCAvatarDescriptor>();
    using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
-    EditorGUILayout.LabelField("audiolink outline",EditorStyles.boldLabel);EditorGUILayout.LabelField("v"+AudioLinkOutlineInstaller.Version+"  ·  游戏内调节范围  ·  同步占用 66 bits",EditorStyles.miniLabel);
+    using(new EditorGUILayout.HorizontalScope()){
+     EditorGUILayout.LabelField("audiolink outline",EditorStyles.boldLabel);
+     using(new EditorGUI.DisabledScope(!avatar||(settings.renderers?.Length??0)==0))if(GUILayout.Button("效果快照",EditorStyles.miniButton,GUILayout.Width(76))){serializedObject.ApplyModifiedProperties();AudioLinkOutlineSnapshotWindow.Open(settings);GUIUtility.ExitGUI();}
+    }
+    EditorGUILayout.LabelField("v"+AudioLinkOutlineInstaller.Version+"  ·  游戏内调节范围  ·  同步占用 66 bits",EditorStyles.miniLabel);
    }
    for(int section=0;section<headings.Length;section++){
     bool was=openSection==section;bool now=EditorGUILayout.Foldout(was,headings[section],true,EditorStyles.foldoutHeader);if(now&&!was)openSection=section;else if(!now&&was)openSection=-1;

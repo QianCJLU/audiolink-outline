@@ -8,7 +8,7 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using nadena.dev.modular_avatar.core;
 namespace AudioLinkOutlineLite.Editor {
  public static class AudioLinkOutlineLiteInstaller {
-  public const string Version="0.1.0",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
+  public const string Version="0.1.1",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
   public static void Repair(AudioLinkOutlineLiteSettings settings){
    var menu=settings.GetComponent<ModularAvatarMenuInstaller>()??Undo.AddComponent<ModularAvatarMenuInstaller>(settings.gameObject);
    var parameters=settings.GetComponent<ModularAvatarParameters>()??Undo.AddComponent<ModularAvatarParameters>(settings.gameObject);
@@ -53,7 +53,11 @@ namespace AudioLinkOutlineLite.Editor {
   public override void OnInspectorGUI(){
    serializedObject.Update();var settings=(AudioLinkOutlineLiteSettings)target;var avatar=settings.GetComponentInParent<VRCAvatarDescriptor>();
    using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
-    EditorGUILayout.LabelField("audiolink outline lite",EditorStyles.boldLabel);EditorGUILayout.LabelField("v"+AudioLinkOutlineLiteInstaller.Version+"  ·  游戏内开关与模式  ·  同步占用 2 bits",EditorStyles.miniLabel);
+    using(new EditorGUILayout.HorizontalScope()){
+     EditorGUILayout.LabelField("audiolink outline lite",EditorStyles.boldLabel);
+     using(new EditorGUI.DisabledScope(!avatar||(settings.renderers?.Length??0)==0))if(GUILayout.Button("效果快照",EditorStyles.miniButton,GUILayout.Width(76))){serializedObject.ApplyModifiedProperties();AudioLinkOutlineLiteSnapshotWindow.Open(settings);GUIUtility.ExitGUI();}
+    }
+    EditorGUILayout.LabelField("v"+AudioLinkOutlineLiteInstaller.Version+"  ·  游戏内开关与模式  ·  同步占用 2 bits",EditorStyles.miniLabel);
    }
    for(int section=0;section<headings.Length;section++){
     bool was=openSection==section;bool now=EditorGUILayout.Foldout(was,headings[section],true,EditorStyles.foldoutHeader);if(now&&!was)openSection=section;else if(!now&&was)openSection=-1;

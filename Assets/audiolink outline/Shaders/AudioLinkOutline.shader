@@ -32,6 +32,7 @@ Shader "audiolink outline"
         _ALOBottom ("Bottom",Float)=0
         _ALOBaseScale ("Authored scale",Float)=1
         _ALOAvatarScale ("VRChat ScaleFactor",Float)=1
+        [HideInInspector] _ALOPreviewWave ("Editor snapshot wave",Float)=-1
         [HideInInspector] _ALOTestClock ("Test clock",Float)=0
         [HideInInspector] _ALOTime ("Test time",Float)=0
         [HideInInspector] _ALODebugHeight ("Test height",Float)=0
@@ -63,6 +64,7 @@ Shader "audiolink outline"
                 if(distanceToViewer>8||_ALOOn<0.5)return 1;
                 float lo=(min(wa.y,wb.y)-ALOBottomWS())/(_ALOHeight*ALOScale());
                 float hi=(max(wa.y,wb.y)-ALOBottomWS())/(_ALOHeight*ALOScale());
+                if(_ALOTestClock>0.5&&_ALOPreviewWave>=0)return distanceToViewer<5?2:1;
                 bool crest;
                 if(ALOUseBreathing())
                 {
@@ -84,7 +86,7 @@ Shader "audiolink outline"
                 // Zero tessellation factors discard an invisible patch before
                 // domain shading and pixel work. Visible factors stay unchanged.
                 if(_ALOOn<0.5)return f;
-                if(_ALODebugHeight<0.5&&_ALOWidth<=0&&dot(ALOOffset(),ALOOffset())<0.000000000001)
+                if(!(_ALOTestClock>0.5&&_ALOPreviewWave>=0)&&_ALODebugHeight<0.5&&_ALOWidth<=0&&dot(ALOOffset(),ALOOffset())<0.000000000001)
                 {
                     if(ALOUseBreathing())
                     {

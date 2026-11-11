@@ -7,6 +7,7 @@ float _ALOWaveWidth, _ALOBreathLength, _ALOBreathFrequency;
 float _ALOOffsetHorizontal, _ALOOffsetVertical;
 float _ALOMargin, _ALOHeight, _ALOBottom, _ALOBaseScale, _ALOAvatarScale;
 float _ALOLightMinLimit, _ALOLightMaxLimit, _ALOMonochromeLighting, _ALOAsUnlit, _ALOVertexLightStrength;
+float _ALOPreviewWave;
 float _ALOTestClock, _ALOTime, _ALODebugHeight;
 struct ALOInput { float4 vertex:POSITION; float3 normal:NORMAL;float2 uv:TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
 struct ALOOutput { float4 position:SV_POSITION; float activity:TEXCOORD0; float height:TEXCOORD1; float3 worldNormal:TEXCOORD2; float2 uv:TEXCOORD3; float3 lightColor:TEXCOORD4; UNITY_VERTEX_OUTPUT_STEREO };
@@ -35,6 +36,7 @@ bool ALOUseBreathing()
 }
 float ALOWave(float height)
 {
+    if(_ALOTestClock>0.5&&_ALOPreviewWave>=0)return _ALOPreviewWave;
     float clock=ALOClock();
     if(ALOUseBreathing())
     {
