@@ -8,7 +8,7 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using nadena.dev.modular_avatar.core;
 namespace AudioLinkOutlineLite.Editor {
  public static class AudioLinkOutlineLiteInstaller {
-  public const string Version="0.1.2",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
+  public const string Version="0.1.3",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
   public static void Repair(AudioLinkOutlineLiteSettings settings){
    var menu=settings.GetComponent<ModularAvatarMenuInstaller>()??Undo.AddComponent<ModularAvatarMenuInstaller>(settings.gameObject);
    var parameters=settings.GetComponent<ModularAvatarParameters>()??Undo.AddComponent<ModularAvatarParameters>(settings.gameObject);
@@ -56,7 +56,6 @@ namespace AudioLinkOutlineLite.Editor {
    using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
     using(new EditorGUILayout.HorizontalScope()){
      EditorGUILayout.LabelField("audiolink outline lite",EditorStyles.boldLabel);
-     using(new EditorGUI.DisabledScope(!avatar||(settings.renderers?.Length??0)==0))if(GUILayout.Button("效果快照",EditorStyles.miniButton,GUILayout.Width(76))){serializedObject.ApplyModifiedProperties();AudioLinkOutlineLiteSnapshotWindow.Open(settings);GUIUtility.ExitGUI();}
     }
     EditorGUILayout.LabelField("v"+AudioLinkOutlineLiteInstaller.Version+"  ·  游戏内开关与模式  ·  同步占用 2 bits",EditorStyles.miniLabel);
    }
@@ -93,6 +92,7 @@ namespace AudioLinkOutlineLite.Editor {
        Field("shellTriangleBudget","新增三角面预算","轮廓和遮罩合计，默认 70,000，上限 200,000。");
        var bit=serializedObject.FindProperty("stencilBit");int[] bits={1,2,4,8,16,32,64,128};bit.intValue=EditorGUILayout.IntPopup("优先遮罩位",bit.intValue,bits.Select(v=>v.ToString()).ToArray(),bits);
        EditorGUILayout.LabelField("遮罩位冲突时自动避让。PC 蒙皮网格适用。",EditorStyles.wordWrappedMiniLabel);
+     using(new EditorGUI.DisabledScope(!avatar||(settings.renderers?.Length??0)==0))if(GUILayout.Button("预览效果")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineLiteSnapshotWindow.Open(settings);GUIUtility.ExitGUI();}
        if(GUILayout.Button("一键应用安装/修复")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineLiteInstaller.Repair(settings);serializedObject.Update();}
    }
    if(serializedObject.ApplyModifiedProperties())SceneView.RepaintAll();

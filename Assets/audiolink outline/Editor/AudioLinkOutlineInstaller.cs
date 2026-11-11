@@ -15,7 +15,7 @@ namespace AudioLinkOutline.Editor
     {
         public const string Folder="Assets/audiolink outline";
         public const string PrefabPath=Folder+"/audiolink outline.prefab";
-        public const string Version="0.2.2";
+        public const string Version="0.2.3";
 
         public static AudioLinkOutlineSettings Install(VRCAvatarDescriptor avatar,VRCExpressionsMenu target)
         {
@@ -142,7 +142,6 @@ namespace AudioLinkOutline.Editor
    using(new EditorGUILayout.VerticalScope(EditorStyles.helpBox)){
     using(new EditorGUILayout.HorizontalScope()){
      EditorGUILayout.LabelField("audiolink outline",EditorStyles.boldLabel);
-     using(new EditorGUI.DisabledScope(!avatar||(settings.renderers?.Length??0)==0))if(GUILayout.Button("效果快照",EditorStyles.miniButton,GUILayout.Width(76))){serializedObject.ApplyModifiedProperties();AudioLinkOutlineSnapshotWindow.Open(settings);GUIUtility.ExitGUI();}
     }
     EditorGUILayout.LabelField("v"+AudioLinkOutlineInstaller.Version+"  ·  游戏内调节范围  ·  同步占用 66 bits",EditorStyles.miniLabel);
    }
@@ -179,6 +178,7 @@ namespace AudioLinkOutline.Editor
        Field("shellTriangleBudget","新增三角面预算","轮廓和遮罩合计，默认 70,000，上限 200,000。");
        var bit=serializedObject.FindProperty("stencilBit");int[] bits={1,2,4,8,16,32,64,128};bit.intValue=EditorGUILayout.IntPopup("优先遮罩位",bit.intValue,bits.Select(v=>v.ToString()).ToArray(),bits);
        EditorGUILayout.LabelField("遮罩位冲突时自动避让。PC 蒙皮网格适用。",EditorStyles.wordWrappedMiniLabel);
+     using(new EditorGUI.DisabledScope(!avatar||(settings.renderers?.Length??0)==0))if(GUILayout.Button("预览效果")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineSnapshotWindow.Open(settings);GUIUtility.ExitGUI();}
        if(GUILayout.Button("一键应用安装/修复")){serializedObject.ApplyModifiedProperties();AudioLinkOutlineInstaller.Repair(settings);serializedObject.Update();}
    }
    if(serializedObject.ApplyModifiedProperties())SceneView.RepaintAll();
