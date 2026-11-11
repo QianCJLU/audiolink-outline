@@ -1,24 +1,42 @@
 # audiolink outline
 
-用于 VRChat PC 角色的 AudioLink 音乐响应轮廓。当前版本：**1.6.6**。
+用于 VRChat PC 角色的 AudioLink 音乐响应轮廓工具。
 
-## 安装
+## 实现功能
 
-从 [Releases](https://github.com/QianCJLU/audiolink-outline/releases/latest) 下载 unitypackage，导入 Unity 项目。
+- AudioLink 音频响应与手动呼吸波动两种模式。
+- 轮廓亮度、色相、基础宽度和波峰宽度调节。
+- 四向偏移与偏移归中。
+- 呼吸波长与频率调节。
+- 透明贴图与 lilToon Alpha Mask 支持。
+- 目标网格选择、面数预算，以及可折叠、可滚动的网格列表。
 
-需要 Unity 2022.3、VRChat Avatars SDK、Modular Avatar 1.11+、NDMF 1.11+；lilToon 角色可直接使用。
+## 实现方法
 
-将 `Assets/audiolink outline/audiolink outline.prefab` 拖到带 Avatar Descriptor 的角色根对象下，在检查器中展开目标列表勾选网格，通过 MA Menu Installer 选择菜单位置。构建时生成轮廓。
+通过 Modular Avatar 合并菜单、参数和动画控制器，使用 NDMF 在角色构建时生成蒙皮轮廓外壳与透明遮罩。着色器负责轮廓外扩、音频响应、呼吸波形、色相和光照计算。
 
-## 功能
+四向轮盘使用本地输入参数，水平和垂直两个浮点参数负责偏移同步。工具共使用 **66 bits** 同步参数。
 
-- AudioLink / 呼吸波动、色相、亮度与轮廓宽度调节。
-- 四向偏移与归中，内部同步压缩为两个轴，合计 **66 bits** 同步参数。
-- 呼吸波长、频率默认 50%；100% 频率为原来的两倍。
-- 亮度为 0 时使用场景光照，并继承对应 lilToon 材质的亮度限制等设置。
-- 支持透明贴图与 lilToon Alpha Mask；其他具有常规主纹理属性的着色器通过通用适配支持。
-- 新增轮廓和遮罩合计默认 70,000 三角面，上限 200,000。
+亮度为 0 时使用场景主灯与光照探针，并读取对应 lilToon 材质的亮度上下限、光照去色和无光照比例。
 
-不复刻第三方着色器的所有特殊效果；静态网格、粒子及 Android 暂不支持。
+轮廓与遮罩的三角面数合计受预算限制，默认 **70,000**，可设置范围为 **1,000～200,000**。
 
-本仓库仅含工具本体，不包含角色、Salt 专用菜单插件或第三方依赖。
+## 安装方法
+
+1. 准备 Unity 2022.3、VRChat Avatars SDK、Modular Avatar 1.11+ 和 NDMF 1.11+。lilToon 材质需要安装 lilToon。
+2. 从 [Releases](https://github.com/QianCJLU/audiolink-outline/releases/latest) 下载 `.unitypackage` 并导入项目。
+3. 将 `Assets/audiolink outline/audiolink outline.prefab` 拖入带有 VRC Avatar Descriptor 的角色根对象下。
+4. 在预制件检查器中展开“勾选生成目标”，选择需要轮廓的网格，并设置面数预算。
+5. 通过预制件上的 **MA Menu Installer** 选择菜单安装位置。
+6. 构建预览或上传角色时生成轮廓。
+
+适用于 PC 角色的 SkinnedMeshRenderer。具有常规主纹理属性的其他材质可使用通用适配；特殊溶解、折射、几何扩展等效果不在适配范围内。
+
+## 使用方法
+
+- **开启描边**：控制轮廓显示。
+- **描边属性**：调节亮度、色相、基础宽度、波峰宽度，并选择音频响应或手动呼吸模式。音频模式需要房间提供 AudioLink 信号。
+- **呼吸波长**：50% 时波带覆盖约角色高度的四分之一，100% 时约为二分之一。
+- **呼吸频率**：50% 时周期为 4 秒，100% 时周期为 2 秒，0% 时停止传播。
+- **剪影偏移**：通过四向轮盘移动轮廓，100% 时最大偏移约为角色高度的 5%。
+- **偏移归中**：将轮廓偏移设为零。
