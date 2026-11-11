@@ -26,10 +26,17 @@ bool ALOBreathIntersects(float low,float high)
     float phase=0.06-ALOClock()*0.25*(2*saturate(_ALOBreathFrequency));
     return ceil(phase+low*0.5-ALO_BREATH_PHASE_RADIUS-0.00001)<=floor(phase+high*0.5+ALO_BREATH_PHASE_RADIUS+0.00001);
 }
+// A compatible global AudioLink texture selects audio even during silence.
+bool ALOUseBreathing()
+{
+    if(_ALOBreath>0.5)return true;
+    uint width,rows;_AudioTexture.GetDimensions(width,rows);
+    return width<128||rows<4;
+}
 float ALOWave(float height)
 {
     float clock=ALOClock();
-    if(_ALOBreath>0.5)
+    if(ALOUseBreathing())
     {
         // Four-second interval, two-second ascent. The waveform peak is 0.5.
         // Smooth breathing band spans one quarter of the normalized body height.

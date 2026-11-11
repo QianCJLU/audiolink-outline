@@ -15,7 +15,7 @@ namespace AudioLinkOutline.Editor
     {
         public const string Folder="Assets/audiolink outline";
         public const string PrefabPath=Folder+"/audiolink outline.prefab";
-        public const string Version="1.6.6";
+        public const string Version="1.6.7";
 
         public static AudioLinkOutlineSettings Install(VRCAvatarDescriptor avatar,VRCExpressionsMenu target)
         {
@@ -85,7 +85,7 @@ namespace AudioLinkOutline.Editor
                 controls.controls.Add(c);
             }
             var attributes=Menu(Folder+"/Resources/Attributes.asset");attributes.controls.Clear();
-            string[] attributeNames={"波峰宽度","未响应轮廓宽度","亮度","描边色相","呼吸波动","音频波动","呼吸波长","呼吸频率"};
+            string[] attributeNames={"波峰宽度","未响应轮廓宽度","亮度","描边色相","呼吸波动","自动音频响应","呼吸波长","呼吸频率"};
             int[] attributeParameters={9,2,1,3,4,4,10,11};string[] attributeIcons={"wave-width","width","brightness","hue","breath","audio-mode","breath-length","breath-frequency"};
             for(int i=0;i<8;i++) {
                 bool toggle=i==4||i==5;

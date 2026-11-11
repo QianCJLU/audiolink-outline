@@ -64,7 +64,7 @@ Shader "audiolink outline"
                 float lo=(min(wa.y,wb.y)-ALOBottomWS())/(_ALOHeight*ALOScale());
                 float hi=(max(wa.y,wb.y)-ALOBottomWS())/(_ALOHeight*ALOScale());
                 bool crest;
-                if(_ALOBreath>0.5)
+                if(ALOUseBreathing())
                 {
                     crest=ALOBreathIntersects(lo,hi);
                     if(!crest)return 1;
@@ -86,7 +86,7 @@ Shader "audiolink outline"
                 if(_ALOOn<0.5)return f;
                 if(_ALODebugHeight<0.5&&_ALOWidth<=0&&dot(ALOOffset(),ALOOffset())<0.000000000001)
                 {
-                    if(_ALOBreath>0.5)
+                    if(ALOUseBreathing())
                     {
                         float y0=mul(unity_ObjectToWorld,p[0].vertex).y;
                         float y1=mul(unity_ObjectToWorld,p[1].vertex).y;

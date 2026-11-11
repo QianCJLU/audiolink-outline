@@ -68,7 +68,7 @@ MonoBehaviour:
     subMenu: {fileID: 0}
     subParameters: []
     labels: []
-  - name: "\u97F3\u9891\u6CE2\u52A8"
+  - name: "\u81EA\u52A8\u97F3\u9891\u54CD\u5E94"
     icon: {fileID: 2800000, guid: 62e868469b85d4e4593888def560f76f, type: 3}
     type: 102
     parameter:
