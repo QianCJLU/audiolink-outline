@@ -11,7 +11,7 @@ public static class AudioLinkOutlineMesh
     {
         public List<int> members=new List<int>();
         public Vector3 center,normal;
-        public int representative;
+        public int representative,attribute;
     }
     sealed class Reduced { public Cell[] cells;public int[] triangles;public int[] slots; }
     static Reduced Cluster(Vector3[] vertices,Vector3[] normals,BoneWeight[] weights,int[] indices,int[] slots,int[] islands,float size)
@@ -34,16 +34,68 @@ public static class AudioLinkOutlineMesh
             c.center=vertices[c.representative];c.normal=normals[c.representative].normalized;
         }
         var triangles=new List<int>();var unique=new HashSet<(int,int,int,int)>();var outputSlots=new List<int>();
+        var splitCells=new List<Cell>();var attributes=new Dictionary<int,int>();
+        Func<int,int> split=original=>{
+            if(attributes.TryGetValue(original,out int output))return output;
+            var cell=cells[map[original]];output=splitCells.Count;attributes.Add(original,output);
+            splitCells.Add(new Cell{center=cell.center,normal=cell.normal,representative=cell.representative,attribute=original});return output;
+        };
         for(int i=0;i<indices.Length;i+=3)
         {
             int a=map[indices[i]],b=map[indices[i+1]],c=map[indices[i+2]];
             if(a==b||b==c||a==c||Vector3.Cross(cells[b].center-cells[a].center,cells[c].center-cells[a].center).sqrMagnitude<1e-14f)continue;
             int lo=Math.Min(a,Math.Min(b,c)),hi=Math.Max(a,Math.Max(b,c));
             if(!unique.Add((lo,a+b+c-lo-hi,hi,slots[i/3])))continue;
-            triangles.Add(a);triangles.Add(b);triangles.Add(c);outputSlots.Add(slots[i/3]);
+            triangles.Add(split(indices[i]));triangles.Add(split(indices[i+1]));triangles.Add(split(indices[i+2]));outputSlots.Add(slots[i/3]);
         }
-        var used=triangles.Distinct().OrderBy(i=>i).ToArray();var compact=used.Select((id,i)=>(id,i)).ToDictionary(p=>p.id,p=>p.i);
-        return new Reduced{cells=used.Select(i=>cells[i]).ToArray(),triangles=triangles.Select(i=>compact[i]).ToArray(),slots=outputSlots.ToArray()};
+        return new Reduced{cells=splitCells.ToArray(),triangles=triangles.ToArray(),slots=outputSlots.ToArray()};
+    }
+    sealed class Union
+    {
+        readonly int[] parent;
+        public Union(int count){parent=Enumerable.Range(0,count).ToArray();}
+        public int Find(int index){while(parent[index]!=index){parent[index]=parent[parent[index]];index=parent[index];}return index;}
+        public void Join(int a,int b){a=Find(a);b=Find(b);if(a!=b)parent[b]=a;}
+    }
+    struct Edge
+    {
+        public int a,b,from,to;public Vector3 face;
+    }
+    // Only opposite directed copies of a geometric edge form a seam. Isolated
+    // coincident points and opposite coincident sheets remain independent.
+    static int[] Stitch(Mesh mesh,Vector3[] vertices,Vector3[] normals,BoneWeight[] weights,int[] indices,HashSet<string> animated)
+    {
+        var used=indices.Distinct().ToArray();var topology=new Union(vertices.Length);var seams=new Union(vertices.Length);
+        var candidates=used.GroupBy(i=>(vertices[i],weights[i])).Select(g=>g.ToList()).ToList();
+        var delta=new Vector3[vertices.Length];var deltaNormal=new Vector3[vertices.Length];var tangent=new Vector3[vertices.Length];
+        for(int shape=0;shape<mesh.blendShapeCount;shape++)if(animated.Contains(mesh.GetBlendShapeName(shape)))
+            for(int frame=0;frame<mesh.GetBlendShapeFrameCount(shape);frame++){
+                mesh.GetBlendShapeFrameVertices(shape,frame,delta,deltaNormal,tangent);
+                candidates=candidates.SelectMany(group=>group.GroupBy(i=>delta[i]).Select(g=>g.ToList())).ToList();
+            }
+        var point=new int[vertices.Length];for(int group=0;group<candidates.Count;group++)foreach(int i in candidates[group])point[i]=group;
+        var edges=new Dictionary<(int,int),List<Edge>>();var angles=new float[vertices.Length];
+        for(int triangle=0;triangle<indices.Length;triangle+=3){
+            int a=indices[triangle],b=indices[triangle+1],c=indices[triangle+2];topology.Join(a,b);topology.Join(b,c);
+            var face=Vector3.Cross(vertices[b]-vertices[a],vertices[c]-vertices[a]);if(face.sqrMagnitude<1e-20f)continue;face.Normalize();
+            int[] corners={a,b,c};for(int corner=0;corner<3;corner++){
+                int from=corners[corner],to=corners[(corner+1)%3],other=corners[(corner+2)%3];
+                angles[from]+=Vector3.Angle(vertices[to]-vertices[from],vertices[other]-vertices[from])*Mathf.Deg2Rad;
+                if(point[from]==point[to])continue;var key=(Math.Min(point[from],point[to]),Math.Max(point[from],point[to]));
+                if(!edges.TryGetValue(key,out var copies)){copies=new List<Edge>();edges.Add(key,copies);}
+                copies.Add(new Edge{a=from,b=to,from=point[from],to=point[to],face=face});
+            }
+        }
+        foreach(var copies in edges.Values)for(int i=0;i<copies.Count;i++)for(int j=i+1;j<copies.Count;j++){
+            var a=copies[i];var b=copies[j];if(a.from!=b.to||a.to!=b.from||Vector3.Dot(a.face,b.face)<-.9999f)continue;
+            seams.Join(a.a,b.b);seams.Join(a.b,b.a);topology.Join(a.a,b.b);topology.Join(a.b,b.a);
+        }
+        foreach(var group in used.GroupBy(seams.Find)){
+            var members=group.ToArray();if(members.Length<2)continue;Vector3 normal=Vector3.zero;
+            foreach(int i in members)normal+=normals[i].normalized*Mathf.Max(angles[i],.0001f);
+            if(normal.sqrMagnitude<1e-12f)continue;normal.Normalize();foreach(int i in members)normals[i]=normal;
+        }
+        return Enumerable.Range(0,vertices.Length).Select(topology.Find).ToArray();
     }
     public static bool SupportedSurface(Material material)=>material&&material.shader&&
         (material.HasProperty("_MainTex")||material.HasProperty("_BaseMap"));
@@ -57,11 +109,6 @@ public static class AudioLinkOutlineMesh
         var mesh=source.sharedMesh;var v=mesh.vertices;var normals=mesh.normals;var weights=mesh.boneWeights;var indices=Indices(source);
         if(indices.Length==0){bones=Array.Empty<Transform>();return null;}
         if(normals.Length!=v.Length||weights.Length!=v.Length)throw new Exception("Missing skin data: "+source.name);
-        // Disconnected hair cards and UV seams must not collapse into one surface.
-        var islands=Enumerable.Range(0,v.Length).ToArray();
-        Func<int,int> find=null;find=i=>{while(islands[i]!=i){islands[i]=islands[islands[i]];i=islands[i];}return i;};
-        for(int i=0;i<indices.Length;i+=3){int a=find(indices[i]);islands[find(indices[i+1])]=a;islands[find(indices[i+2])]=a;}
-        for(int i=0;i<islands.Length;i++)islands[i]=find(i);
         var slots=Enumerable.Range(0,mesh.subMeshCount).Where(i=>mesh.GetTopology(i)==UnityEngine.MeshTopology.Triangles).SelectMany(i=>Enumerable.Repeat(i,mesh.GetTriangles(i).Length/3)).ToArray();
         var dv=new Vector3[v.Length];var dn=new Vector3[v.Length];var dt=new Vector3[v.Length];
         // Bake static customization but retain exactly the weights and morph deltas
@@ -80,6 +127,7 @@ public static class AudioLinkOutlineMesh
             mesh.GetBlendShapeFrameVertices(shape,upper,dv,dn,dt);
             for(int i=0;i<v.Length;i++){v[i]+=Vector3.LerpUnclamped(lowD[i],dv[i],t);normals[i]+=Vector3.LerpUnclamped(lowN[i],dn[i],t);}
         }
+        var islands=Stitch(mesh,v,normals,weights,indices,animated);
         var bounds=new Bounds(v[indices[0]],Vector3.zero);foreach(int i in indices)bounds.Encapsulate(v[i]);
         float low=0.000001f,high=Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z));
         var best=Cluster(v,normals,weights,indices,slots,islands,low);
@@ -101,7 +149,7 @@ public static class AudioLinkOutlineMesh
         var boneMap=boneIds.Select((id,i)=>(id,i)).ToDictionary(p=>p.id,p=>p.i);
         for(int i=0;i<bw.Length;i++){var w=bw[i];w.boneIndex0=boneMap[w.boneIndex0];w.boneIndex1=boneMap[w.boneIndex1];w.boneIndex2=boneMap[w.boneIndex2];w.boneIndex3=boneMap[w.boneIndex3];bw[i]=w;}
         result.boneWeights=bw;result.bindposes=boneIds.Select(i=>mesh.bindposes[i]).ToArray();bones=boneIds.Select(i=>source.bones[i]).ToArray();
-        var uv=mesh.uv;result.uv=best.cells.Select(c=>uv.Length==v.Length?uv[c.representative]:Vector2.zero).ToArray();
+        var uv=mesh.uv;result.uv=best.cells.Select(c=>uv.Length==v.Length?uv[c.attribute]:Vector2.zero).ToArray();
         result.subMeshCount=mesh.subMeshCount;
         for(int slot=0;slot<result.subMeshCount;slot++)result.SetTriangles(Enumerable.Range(0,best.slots.Length).Where(i=>best.slots[i]==slot).SelectMany(i=>best.triangles.Skip(i*3).Take(3)).ToArray(),slot,false);
         for(int shape=0;shape<mesh.blendShapeCount;shape++)
