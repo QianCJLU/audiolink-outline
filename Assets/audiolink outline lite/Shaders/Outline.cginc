@@ -39,12 +39,29 @@ float ALOAudioSample(int column,int band)
     if(_ALOTestClock>0.5&&_ALOPreviewAudioEnabled>0.5)return _ALOPreviewAudioTexture.Load(int3(column,band,0)).r;
     return _AudioTexture.Load(int3(column,band,0)).r;
 }
-// A compatible global AudioLink texture selects audio even during silence.
+// Manual breathing always wins. AudioLink's time-filtered four-band data
+// holds automatic audio mode through brief gaps without avatar-side state.
 bool ALOUseBreathing()
 {
     if(_ALOBreath>0.5)return true;
     uint width,rows;ALOAudioDimensions(width,rows);
-    return width<128||rows<4;
+    if(width<128||rows<4)return true;
+    [unroll]for(int band=0;band<4;band++)
+    {
+        if(ALOAudioSample(0,band)>0.005)return false;
+        if(rows>=32)
+        {
+            // ALPASS_FILTEREDAUDIOLINK=(0,28); filter 7 decays over short gaps.
+            if(ALOAudioSample(7,28+band)>0.005)return false;
+        }
+        else
+        {
+            // Minimal four-band textures can use the recent 90 Hz history.
+            [unroll]for(int history=1;history<=3;history++)
+                if(ALOAudioSample(history*15,band)>0.005)return false;
+        }
+    }
+    return true;
 }
 float ALOWave(float height)
 {

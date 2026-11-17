@@ -8,7 +8,7 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using nadena.dev.modular_avatar.core;
 namespace AudioLinkOutlineLite.Editor {
  public static class AudioLinkOutlineLiteInstaller {
-  public const string Version="0.1.7",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
+  public const string Version="0.1.8",Folder="Assets/audiolink outline lite",PrefabPath=Folder+"/audiolink outline lite.prefab";
   public static void Repair(AudioLinkOutlineLiteSettings settings){
    var menu=settings.GetComponent<ModularAvatarMenuInstaller>()??Undo.AddComponent<ModularAvatarMenuInstaller>(settings.gameObject);
    var parameters=settings.GetComponent<ModularAvatarParameters>()??Undo.AddComponent<ModularAvatarParameters>(settings.gameObject);
@@ -77,7 +77,7 @@ namespace AudioLinkOutlineLite.Editor {
       case 2:
        Field("width","基础轮廓宽度");Field("waveWidth","波峰外扩幅度");if(GUILayout.Button("恢复此组默认")){Set("width",1);Set("waveWidth",1);}break;
       case 3:
-       EditorGUILayout.LabelField("有 AudioLink 时响应音频；没有时使用呼吸。",EditorStyles.wordWrappedMiniLabel);
+       EditorGUILayout.LabelField("有音频信号时响应音频；静音或没有 AudioLink 时使用呼吸。",EditorStyles.wordWrappedMiniLabel);
        Field("breathLength","呼吸波长","50% 约为角色高度的四分之一。");Field("breathFrequency","呼吸频率","50% 为四秒周期，100% 为两秒周期，0 停止传播。");
        if(GUILayout.Button("恢复此组默认")){Set("breathLength",.5f);Set("breathFrequency",.5f);}break;
       case 4:
